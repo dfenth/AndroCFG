@@ -3,4 +3,4 @@ Global configuration settings
 """
 import logging
 
-LOG_LEVEL = logging.WARNING 
+LOG_LEVEL = logging.DEBUG 

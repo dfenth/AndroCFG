@@ -9,7 +9,7 @@ op_map = {
         # Dalvik Bytecode
         "nop":              re.compile("^nop"),
         "move":             re.compile("^move"),
-        "return":           re.compile("^return"), # BB terminator NOTE: Ignored for now since it doesn't really change the structure (until we look at return types)
+        "return":           re.compile("^return"), # BB terminator
         "const":            re.compile("^const"),
         "monitor":          re.compile("^monitor"),        
         "cast_check":       re.compile("^check\-cast"),
@@ -102,9 +102,27 @@ def process_instruction(instr, line_num, state, logger):
     
     elif state.SWITCH_FLAG:
         logger.info("SWITCH_FLAG active")
-        # TODO: Figure out how to handle this!
-        pass
-    
+        # we're in a switch statement so take all of the labels and place them in an expansion dictionary e.g. `{":pswitch_data_0" : [":pswitch_2", ":pswitch_1", ":pswitch_0"]}`
+        # where each reference to `:pswitch_data_0` is expanded to the three 'aliases' resolved at the end of the method (just like normal labels)
+       
+        # if this is the directive line get the previous label
+        if op_map["pswitch_start"].match(instr) or op_map["sswitch_start"].match(instr):
+            state.active_method.previous_label = state.active_block.instructions[-1].instruction
+            state.active_method.label_aliases[state.active_method.previous_label] = []
+       
+            state.active_block = None # Reset the active block since this isn't a real control flow!
+        
+        elif op_map["label"].match(instr):
+            # Add the instruction as an alias
+            state.active_method.label_aliases[state.active_method.previous_label] += [instr]
+        
+        elif op_map["pswitch_end"].match(instr) or op_map["sswitch_end"].match(instr):
+            # Ended the switch instruction so do nothing!
+            pass
+
+        else:
+            logger.warning("Encountered unexpected instruction in switch statement: {}".format(instr))
+
     elif state.METHOD_FLAG:
         logger.info("METHOD_FLAG active")
         # Process instructions within the context of a method
@@ -183,6 +201,9 @@ def process_instruction(instr, line_num, state, logger):
             state.active_method.add_basic_block(state.active_block)
             parent_id = state.active_block.block_id
             
+            # BB TEST
+            # state.active_method.previous_block = state.active_block
+
             # Start new block
             state.active_block = BasicBlock(state.block_id, instr)
             state.active_block.add_parent_block_id(parent_id)
@@ -200,7 +221,22 @@ def process_instruction(instr, line_num, state, logger):
             state.instruction_id += 1
             state.active_block.add_instruction(instruction)
 
-        #elif op_map["return"]
+        elif op_map["return"].match(instr):
+            # set the block termination flag!
+            state.block_term = True
+            instruction = Instruction(
+                    instr, 
+                    "return", 
+                    state.instruction_id, 
+                    line_num, 
+                    state.active_method.method_id, 
+                    state.active_class.class_id, 
+                    state.active_block.block_id)
+
+            state.instruction_id += 1
+            state.active_block.add_instruction(instruction)
+            # TODO: Could do more interesting things with return types in the future...
+
         elif op_map["goto"].match(instr):
             # an unconditional statement which ends the block (this block will be parent of both the call location and the next instructions in the file)
             # this will reference a label within the same method, so add the call to a list to process at the end of the method

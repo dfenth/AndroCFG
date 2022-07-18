@@ -115,6 +115,9 @@ class Method():
         self.calls_in         = [] # The methods that call this one
         self.annotation       = [] # Methods can also have annotations...
         self.label_calls      = [] # The label calls which are local to the method tuple: (label, caller_id)
+        
+        self.previous_label = None # Storage for the previous label if we reach a switch
+        self.label_aliases = {} # A dictionary to store label aliases for switch statements
     
     @staticmethod
     def process_method_directive(instr):
@@ -190,8 +193,22 @@ class Method():
             A string of failed resolutions (check length to see if we have any failures)
         """
         report = []
-        logger.info("Label calls to resolve: {}".format(self.label_calls))
+        logger.info("Label calls to resolve pre alias check: {}".format(self.label_calls))
+        
+        # check for label aliases
+        expanded_calls = []
         for label, caller in self.label_calls:
+            try:
+                aliases = self.label_aliases[label]
+                for a in aliases:
+                    expanded_calls += [(a, caller)]
+
+            except:
+                expanded_calls += [(label, caller)]
+
+        logger.info("Label calls to resolve post alias check: {}".format(self.label_calls))
+        
+        for label, caller in expanded_calls:
             logger.info("Attempting to resolve label: {} -> {}".format(caller, label))
             # Add the id of the basic block that has label as the leader to the caller child block list
             # Could improve performance by adding basic blocks into a dictionary indexed by block id, but... effort
