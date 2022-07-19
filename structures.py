@@ -142,13 +142,6 @@ class Method():
 
         return method_name, param_types, return_type
 
-    def add_instruction(self, instruction):
-        """Add an instruction to the method
-        """
-        # NOTE: Not really necessary since I don't think we'll be in the 
-        # situation where we need to access an instruction from the method context
-        pass # NOTE: Shouldn't this be done in the basic block??
-
     def add_basic_block(self, basic_block):
         """Add a basic block to the list of basic blocks that make up this method
         Args:
@@ -193,7 +186,7 @@ class Method():
             A string of failed resolutions (check length to see if we have any failures)
         """
         report = []
-        logger.info("Label calls to resolve pre alias check: {}".format(self.label_calls))
+        logger.debug("Label calls to resolve pre alias check: {}".format(self.label_calls))
         
         # check for label aliases
         expanded_calls = []
@@ -206,17 +199,18 @@ class Method():
             except:
                 expanded_calls += [(label, caller)]
 
-        logger.info("Label calls to resolve post alias check: {}".format(self.label_calls))
+        logger.debug("Label calls to resolve post alias check: {}".format(expanded_calls))
         
         for label, caller in expanded_calls:
-            logger.info("Attempting to resolve label: {} -> {}".format(caller, label))
+            logger.debug("Attempting to resolve label: {} -> {}".format(caller, label))
             # Add the id of the basic block that has label as the leader to the caller child block list
             # Could improve performance by adding basic blocks into a dictionary indexed by block id, but... effort
             for target_bb in self.basic_blocks:
                 success = False
-                if target_bb.instructions[0] == label:
+                logger.debug("target_bb instruction: {}".format(target_bb.instructions[0].instruction))
+                if label in target_bb.instructions[0].instruction:
                     # Got the basic block for the label, search for the caller
-                    logger.info("Got basic block of label!")
+                    logger.debug("Got basic block of label!")
                     target_basic_block = target_bb
                     success = True
                     break
@@ -227,7 +221,7 @@ class Method():
                 # We have the target basic block, so continue
                 for source_bb in self.basic_blocks:
                     if source_bb.block_id == caller:
-                        logger.info("Got source block of caller!")
+                        logger.debug("Got source block of caller!")
                         # Got the source basic block! Connect the two.
                         source_bb.add_child_block_id(target_basic_block.block_id)
                         target_basic_block.add_parent_block_id(source_bb.block_id)
@@ -320,28 +314,28 @@ class SmaliClass():
         """
         # invoke_params_regex exists if we want to do any processing of the arguments
         # extract the target class and method so we can see what kind of call is being made (local, global, library)
-        logger.info("Instr to process: {}".format(instr))
-        logger.info("Match: {}".format(invoke_class_regex.search(instr).group(0)))
+        logger.debug("Instr to process: {}".format(instr))
+        logger.debug("Match: {}".format(invoke_class_regex.search(instr).group(0)))
         target_class = invoke_class_regex.search(instr).group(0)
         target_class = target_class.strip().replace(";->", "")
         target_method = instr.split("->")[-1]
         target_method = target_method.strip()
         
         app_top_level = self.class_path.split("/")[1] # top level application directory
-        logger.info("Comparing: {}/{} -- {}".format(self.class_path, self.class_name, target_class)) 
+        logger.debug("Comparing: {}/{} -- {}".format(self.class_path, self.class_name, target_class)) 
         if "{}/{}".format(self.class_path, self.class_name) == target_class:
             #if "Lcom" in target_class and app_top_level in target_class and self.class_name in target_class:
             # local invocation
             # Check if it is invoke-direct (which seems to be the only local invocation we can handle) NOTE
             if "invoke-direct" in instr:
                 self.invocations_local += [(method_id, block_id, target_method)]
-                logger.info("Adding {} -> {} as a local invocation".format(target_class, target_method))
+                logger.debug("Adding {} -> {} as a local invocation".format(target_class, target_method))
             else:
-                logger.info("Ignoring {} -> {} since it is not a direct invocation".format(target_class, target_method))
+                logger.debug("Ignoring {} -> {} since it is not a direct invocation".format(target_class, target_method))
         elif "Lcom" in target_class and app_top_level in target_class: # Added check for same top level (after com) as project
             # global invocation (add to list of files to process if necessary)
             self.invocations_global += [(method_id, block_id, target_class, target_method)]
-            logger.info("Adding {} -> {} as a global invocation".format(target_class, target_method))
+            logger.debug("Adding {} -> {} as a global invocation".format(target_class, target_method))
 
             # Add to list to process if we haven't seen it before
             # clean the path (remove `L` add `smali` and the `.smali` extension)
@@ -352,14 +346,14 @@ class SmaliClass():
         else:
             # library invocation
             self.invocations_lib += [(method_id, block_id, target_class, target_method)]
-            logger.info("Adding {} -> {} as a library invocation".format(target_class, target_method))
+            logger.debug("Adding {} -> {} as a library invocation".format(target_class, target_method))
 
     def resolve_local_invocations(self):
         """Resolve local invocations at the end of the class
         Returns:
             A list of failed resolutions (if any)
         """
-        logger.info("Attempting to resolve local invocations: {}".format(self.invocations_local))
+        logger.debug("Attempting to resolve local invocations: {}".format(self.invocations_local))
         report = []
         failed = False
         for src_method, src_block, target_method in self.invocations_local:
@@ -368,9 +362,9 @@ class SmaliClass():
             cleaned_target_method = target_method.split("(")[0]
             # Get the target method object
             for t_m_object in self.methods:
-                logger.info("Comparing: {} -- {}".format(t_m_object.method_name, target_method))
+                logger.debug("Comparing: {} -- {}".format(t_m_object.method_name, target_method))
                 if t_m_object.method_name == cleaned_target_method:
-                    logger.info("Match!")
+                    logger.debug("Match!")
                     # We have the target!
                     # get the first block as the target block
                     target_method_object = t_m_object
@@ -405,7 +399,7 @@ class SmaliClass():
                             target_final_block_object = target_method_object.basic_blocks[-1]
                             target_final_block_object.add_child_block_id(src_block_object.block_id)
                             src_block_object.add_parent_block_id(target_final_block_object.block_id)
-                        logger.info("Successfully resolved local invocation: {} -> {}".format(src_method_object.method_name, target_method_object.method_name))
+                        logger.debug("Successfully resolved local invocation: {} -> {}".format(src_method_object.method_name, target_method_object.method_name))
                         break
                 else:
                     logger.warning("Failed to recover source block from {}".format(self.class_name))

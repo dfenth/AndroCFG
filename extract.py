@@ -10,7 +10,7 @@ import config
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-
+from output_graph import output_dotfile  
 
 log_to_file = False
 
@@ -158,3 +158,5 @@ if len(response) > 0:
 logger.info("Consumed {} files".format(file_count))
 for f in state.file_list:
     logger.info("\t{}".format(f))
+
+output_dotfile(state, "testfile.dot")
