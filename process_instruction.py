@@ -270,9 +270,7 @@ def process_instruction(instr, line_num, state, logger):
             # an unconditional statement which ends the block (this block will be parent of both the call location and the next instructions in the file)
             # this will reference a label within the same method, so add the call to a list to process at the end of the method
             
-            # add the label destination to a list to be resolved at the end of the **method**
-            state.active_method.add_label_call(instr, state.active_block.block_id)
-
+            
             instruction = Instruction(
                     instr, 
                     "goto", 
@@ -290,7 +288,10 @@ def process_instruction(instr, line_num, state, logger):
                 state.active_block.add_instruction(instruction)
             
             state.block_term = True
-                    
+            
+            # add the label destination to a list to be resolved at the end of the **method**
+            state.active_method.add_label_call(instr, state.active_block.block_id)
+        
         elif op_map["if"].match(instr):
             # conditional statement which ends the block (this block will be the parent of both the call location and the next instructions in the file)
             # this references a label within the same method, so add to a list to process at the end of the method
