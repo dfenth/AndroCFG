@@ -10,7 +10,7 @@ import config
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_dotfile  
+from output_graph import output_dotfile, output_coo  
 
 log_to_file = False
 
@@ -160,3 +160,4 @@ for f in state.file_list:
     logger.info("\t{}".format(f))
 
 output_dotfile(state, "testfile.dot")
+output_coo(state, "testfile.coo")
