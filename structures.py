@@ -557,7 +557,11 @@ class Graph():
                 
                 # search for target class
                 for g_class in generated_classes:
-                    if g_class.class_name == target_class_name:
+                    # reconstruct full class name of the generated class
+                    gen_class_name = g_class.class_path + "/" + g_class.class_name
+                    logger.debug("Comparing generated: {} with target: {}".format(gen_class_name, target_class_name))
+                    if gen_class_name == target_class_name:
+                        logger.debug("Found match!")
                         target_class = g_class
                         break
                 else:
@@ -566,11 +570,16 @@ class Graph():
                     generated_classes += [target_class]
 
                 # search for target method
+                logger.debug("\tSearching for target method; {}".format(target_method_name))
+                target_m_name, target_m_params, target_m_ret = Method.process_method_directive(".method T T {}".format(target_method_name)) # compare the components with the current method components
                 for t_method in target_class.methods:
-                    if t_method.method_name == target_method_name:
+                    logger.debug("\tFound class method {} - target method: {}".format(t_method.method_name, target_m_name))
+                    if t_method.method_name == target_m_name and t_method.param_types == target_m_params and t_method.return_type == target_m_ret:
                         target_method = t_method
+                        logger.debug("\tFound match!")
                         break
                 else:
+                    logger.debug("\tFailed to find class method - adding now!")
                     target_method = Method(self.method_id, ".method T T {}".format(target_method_name))
                     self.method_id += 1
                     target_class.add_method(target_method)
@@ -624,4 +633,8 @@ class Graph():
                     target_method.basic_blocks[-1].add_child_block_id(src_block.block_id)
                     src_block.add_parent_block_id(target_method.basic_blocks[-1].block_id)
         
+        # push generated classes to the graph
+        for gc in generated_classes:
+            self.add_class(gc)
+
         return report
