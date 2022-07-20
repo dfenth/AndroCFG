@@ -178,7 +178,7 @@ def process_instruction(instr, line_num, state, logger):
                     state.block_id)
             
             state.instruction_id += 1
-            state.block_id += 1
+            # state.block_id += 1
             
             # start a new block
             block = BasicBlock(state.block_id, instruction)
