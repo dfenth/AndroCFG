@@ -198,15 +198,15 @@ class Method():
             except:
                 expanded_calls += [(label, caller)]
 
-        logger.warning("Label calls to resolve post alias check: {}".format(expanded_calls))
+        logger.debug("Label calls to resolve post alias check: {}".format(expanded_calls))
         
         for label, caller in expanded_calls:
-            logger.warning("Attempting to resolve label: {} -> {}".format(caller, label))
+            logger.debug("Attempting to resolve label: {} -> {}".format(caller, label))
             # Add the id of the basic block that has label as the leader to the caller child block list
             # Could improve performance by adding basic blocks into a dictionary indexed by block id, but... effort
             for target_bb in self.basic_blocks:
                 success = False
-                logger.critical("target_bb instruction: {}".format(target_bb.instructions[0].instruction))
+                logger.debug("target_bb instruction: {}".format(target_bb.instructions[0].instruction))
                 if label == target_bb.instructions[0].instruction:
                     # Got the basic block for the label, search for the caller
                     logger.debug("Got basic block of label!")

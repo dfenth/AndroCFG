@@ -86,8 +86,12 @@ def terminate_and_start_block(state, instruction):
     # check if a block exists first (since the first method in a class has no active block to push to)
     parent_id = None
     if state.active_block != None:
-        state.active_block.add_child_block_id(state.block_id)
-        parent_id = state.active_block.block_id
+        # Check to make sure we don't have a `goto` instruction which we need to separate from the next block
+        logger.warning(state.active_block.instructions[-1].itype)
+        if state.active_block.instructions[-1].itype != "goto":
+            state.active_block.add_child_block_id(state.block_id)
+            parent_id = state.active_block.block_id
+        
         state.active_method.add_basic_block(state.active_block)
         logger.debug("Pushed block {} to method {}".format(state.active_block.block_id, state.active_method.method_name))
         state.active_block = None
@@ -178,7 +182,6 @@ def process_instruction(instr, line_num, state, logger):
                     state.block_id)
             
             state.instruction_id += 1
-            # state.block_id += 1
             
             # start a new block
             block = BasicBlock(state.block_id, instruction)
@@ -223,10 +226,13 @@ def process_instruction(instr, line_num, state, logger):
 
         elif op_map["label"].match(instr):
             # label is a leader (since it is a target of a goto), so end current block and add label as the start of a new one
-            state.active_block.add_child_block_id(state.block_id)
+            parent_id = None
+            if state.active_block.instructions[-1].itype != "goto":
+                state.active_block.add_child_block_id(state.block_id)
+                parent_id = state.active_block.block_id
+            
             state.active_method.add_basic_block(state.active_block)
-            parent_id = state.active_block.block_id
-
+            
             # Start new block
             instruction = Instruction(
                     instr, 
@@ -240,10 +246,11 @@ def process_instruction(instr, line_num, state, logger):
             state.instruction_id += 1
             # create the new label led basic block
             state.active_block = BasicBlock(state.block_id, instruction)
-            state.active_block.add_parent_block_id(parent_id)
+            if parent_id != None:
+                state.active_block.add_parent_block_id(parent_id)
             state.block_id += 1
  
-            state.instruction_id += 1
+            #state.instruction_id += 1
 
         elif op_map["return"].match(instr):
             instruction = Instruction(
@@ -267,10 +274,8 @@ def process_instruction(instr, line_num, state, logger):
             # TODO: Could do more interesting things with return types in the future...
 
         elif op_map["goto"].match(instr):
-            # an unconditional statement which ends the block (this block will be parent of both the call location and the next instructions in the file)
+            # an unconditional statement which ends the block (this block will be parent of the call location but not the next instructions in the file)
             # this will reference a label within the same method, so add the call to a list to process at the end of the method
-            
-            
             instruction = Instruction(
                     instr, 
                     "goto", 
