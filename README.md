@@ -9,10 +9,15 @@ WIP - must use `apktools`
 
 ### File overview
 **config.py** - Contains configuration information for the logger which is used to keep track of code execution. By default the logger is set to only show warning level issues and above because a lot of information is generated otherwise. The logger can also be set to debug for a complete walkthrough of the code execution (which is useful for debugging incorrect graphs), or info which logs the code execution at a higher level (not as detailed as debug).
+
 **extract.py** - The start of the code execution. This starts by making a call to process the Android manifest file followed by a creation of the process state. The code then loads the next smali file in the list, takes the instruction, checks for a directive and then processes the instruction further. Once the file has been processed local method calls are resolved then when all files have been processed the global and library calls are resolved. Finally the output is produced which takes the form of a CFG or FCG in [dot](https://graphviz.org/) or [COO](https://en.wikipedia.org/wiki/Sparse_matrix#Coordinate_list_(COO)) format.
+
 **output_graph.py** - Contains code to format the graph into an output of the specified type and extract feature vectors.
+
 **process_instruction.py** - Processes each smali instruction depending on it's type as defined by the [Dalvik opcode or directives](https://source.android.com/devices/tech/dalvik/dalvik-bytecode).
+
 **process_manifest.py** - Extracts information from the manifest file such as the classes associated with activities (which are added to a list to be processed) and the permissions the app requests.
+
 **structures.py** - Contains the internal classes that are used to create the CFG of the application along with edge resolution code to connect graph vertices correctly.
 
 ### Method
