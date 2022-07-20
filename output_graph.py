@@ -4,8 +4,8 @@ Output the generated graph in various formats
 from structures import Graph
 import random
 
-def output_dotfile(graph, file_path):
-    """Output the graph in digraph form (useful for visualisation with graphviz)
+def output_cfg_dotfile(graph, file_path):
+    """Output the CFG in digraph form (useful for visualisation with graphviz)
     Args:
         graph: Graph - The graph to output the structure of
         file_path: str - The path of the output dot file
@@ -33,6 +33,32 @@ def output_dotfile(graph, file_path):
         dotfile.write(dot_data)
 
 
+def output_fcg_dotfile(graph, file_path):
+    """Output the FCG in digraph form (useful for visualisation with graphviz)
+    Args:
+        graph: Graph - The graph to output the structure of
+        file_path: str - The path of the output dot file
+    """
+    node_def = ""
+    edge_def = ""
+
+    for graph_class in graph.classes:
+        class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
+        for class_method in graph_class.methods:
+            node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, class_method.method_name)
+            
+            for target in class_method.calls_out:
+                edge_def += "{} -> {};\n".format(class_method.method_id, target)
+
+    dot_data = "digraph {\n"
+    dot_data += node_def
+    dot_data += edge_def
+    dot_data += "}\n"
+
+    with open(file_path, "w") as dotfile:
+        dotfile.write(dot_data)
+
+
 def create_summary_feature_vector(instructions, degree, num_total_instr):
     """A function which allows us to create feature vectors from the instructions of a basic block.
     This is a simple summary method which counts groups of.itypes of instruction and returns the resulting vector.
@@ -41,7 +67,7 @@ def create_summary_feature_vector(instructions, degree, num_total_instr):
         degree: int - The degree of the basic block the instructions belong to
         num_total_instr: int - The total number of instructions in the entire program
     Returns:
-        [int] - A feature vector summarising the.itypes of instructions
+        [int] - A feature vector summarising the types of instructions
     """
     # a really simple feature vector extraction technique - could be improved!
     vector_map = {

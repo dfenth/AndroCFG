@@ -109,7 +109,6 @@ class Method():
         self.method_name      = method_name
         self.return_type      = return_type
         self.param_types      = param_types
-        # self.instructions     = []
         self.basic_blocks     = []
         self.calls_out        = [] # The methods this method calls
         self.calls_in         = [] # The methods that call this one
@@ -392,13 +391,24 @@ class SmaliClass():
                         # add the target method as a child of the src and the src as a parent of the target
                         src_block_object.add_child_block_id(target_block_object.block_id)
                         target_block_object.add_parent_block_id(src_block_object.block_id)
+                        
+                        # Add method links (for FCG)
+                        src_method_object.add_call_out(target_method_object.method_id)
+                        target_method_object.add_call_in(src_method_object.method_id)
 
                         # Check if the target returns anything and add an edge from last block of target to the src block if it does
                         if target_method_object.return_type != "V":
+                            # TODO: Think about this - It's a CFG so shouldn't a void return also be linked?
                             # It does not return void, so add edge!
                             target_final_block_object = target_method_object.basic_blocks[-1]
                             target_final_block_object.add_child_block_id(src_block_object.block_id)
                             src_block_object.add_parent_block_id(target_final_block_object.block_id)
+                            
+                            # Add method links (if there is a non void return)
+                            src_method_object.add_call_in(target_method_object.method_id)
+                            target_method_object.add_call_out(src_method_object.method_id)
+
+
                         logger.debug("Successfully resolved local invocation: {} -> {}".format(src_method_object.method_name, target_method_object.method_name))
                         break
                 else:
@@ -534,11 +544,17 @@ class Graph():
                 # We have everything we need so resolve!
                 src_block.add_child_block_id(target_method.basic_blocks[0].block_id)
                 target_method.basic_blocks[0].add_parent_block_id(src_block.block_id)
+                
+                src_method_obj.add_call_in(target_method.method_id)
+                target_method.add_call_out(src_method_obj.method_id)
 
                 # Check if the target returns
                 if target_method.return_type != "V":
                     target_method.basic_blocks[-1].add_child_block_id(src_block.block_id)
                     src_block.add_parent_block_id(target_method.basic_blocks[-1].block_id)
+                    src_method_obj.add_call_out(target_method.method_id)
+                    target_method.add_call_in(src_method_obj.method_id)
+
 
         return report
 

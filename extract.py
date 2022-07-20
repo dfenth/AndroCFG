@@ -10,7 +10,7 @@ import config
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_dotfile, output_coo  
+from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile  
 
 log_to_file = False
 
@@ -159,5 +159,6 @@ logger.info("Consumed {} files".format(file_count))
 for f in state.file_list:
     logger.info("\t{}".format(f))
 
-output_dotfile(state, "testfile.dot")
+output_cfg_dotfile(state, "testfile.dot")
+output_fcg_dotfile(state, "testfile_fcg.dot")
 output_coo(state, "testfile.coo")
