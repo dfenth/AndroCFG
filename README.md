@@ -1,21 +1,12 @@
 # CFGExt
 This project contains python code for CFG extraction from the [Smali intermediate langauge](https://github.com/JesusFreke/smali) which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
 
-### Table of contents
-[Requirements](#requirements)
-[Usage](#usage)
-[File overview](#file-overview)
-[Method](#method)
-
-<a name="requirements"/>
 ### Requirements
 This code was written in python 3.x (3.9 specifically, but any version should work). The only required library is [xmltodict](https://github.com/martinblech/xmltodict) (`pip install xmltodict`) for the manifest file processing.
 
-<a name="usage"/>
 ### Usage
 WIP - must use `apktools`
 
-<a name="file-overview"/>
 ### File overview
 **config.py** - Contains configuration information for the logger which is used to keep track of code execution. By default the logger is set to only show warning level issues and above because a lot of information is generated otherwise. The logger can also be set to debug for a complete walkthrough of the code execution (which is useful for debugging incorrect graphs), or info which logs the code execution at a higher level (not as detailed as debug).
 **extract.py** - The start of the code execution. This starts by making a call to process the Android manifest file followed by a creation of the process state. The code then loads the next smali file in the list, takes the instruction, checks for a directive and then processes the instruction further. Once the file has been processed local method calls are resolved then when all files have been processed the global and library calls are resolved. Finally the output is produced which takes the form of a CFG or FCG in [dot](https://graphviz.org/) or [COO](https://en.wikipedia.org/wiki/Sparse_matrix#Coordinate_list_(COO)) format.
@@ -24,7 +15,6 @@ WIP - must use `apktools`
 **process_manifest.py** - Extracts information from the manifest file such as the classes associated with activities (which are added to a list to be processed) and the permissions the app requests.
 **structures.py** - Contains the internal classes that are used to create the CFG of the application along with edge resolution code to connect graph vertices correctly.
 
-<a name="method"/>
 ### Method
 This section describes how a CFG is created from the smali code files from start to finish.
 When a valid folder is passed to `extract.py` it opens the `AndroidManifest.xml` file and processes it. The activity files within the manifest describe all of the valid ways that an app can be started by the user (e.g. tapping the app icon, another app calling for a specific task which this app can respond to etc.). These activities usually correspond to different classes within the project, therefore, we extract the class along with the path to it from the manifest and add it to a list of files to process when creating our graph. 
