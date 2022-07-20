@@ -1,5 +1,5 @@
 # CFGExt
-This project contains python code for CFG extraction from the [Smali intermediate langauge]([GitHub - JesusFreke/smali: smali/baksmali](https://github.com/JesusFreke/smali)) which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
+This project contains python code for CFG extraction from the (Smali intermediate langauge)[https://github.com/JesusFreke/smali] which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
 
 ### Table of contents
 [[cfgext#Requirements|Requirements]]
