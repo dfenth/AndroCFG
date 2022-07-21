@@ -640,3 +640,5 @@ class Graph():
             self.add_class(gc)
 
         return report
+
+    
