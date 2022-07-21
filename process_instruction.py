@@ -1,8 +1,12 @@
 """
 Process the smali instructions using the provided state
+Details on operations can be found here:
+https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
 """
+
 import re
-from structures import *
+from config import logger
+from structures import Instruction, BasicBlock, Method, SmaliClass
 
 # Precompiled regex for all of the instructions
 op_map = {
@@ -87,7 +91,6 @@ def terminate_and_start_block(state, instruction):
     parent_id = None
     if state.active_block != None:
         # Check to make sure we don't have a `goto` instruction which we need to separate from the next block
-        logger.warning(state.active_block.instructions[-1].itype)
         if state.active_block.instructions[-1].itype != "goto":
             state.active_block.add_child_block_id(state.block_id)
             parent_id = state.active_block.block_id

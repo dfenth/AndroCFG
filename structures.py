@@ -2,21 +2,7 @@
 Holds all of the program structures we need to represent smali intermediate code as a program graph
 """
 import re
-import logging
-import config
-
-log_to_file = False
-
-if log_to_file:
-    handler = logging.FileHandler("file.log")
-else:
-    handler = logging.StreamHandler()
-
-handler.setFormatter(logging.Formatter("%(name)s:%(levelname)s:: %(message)s"))
-logger = logging.getLogger("Structures")
-logger.setLevel(config.LOG_LEVEL)
-logger.addHandler(handler)
-
+from config import logger
 
 invoke_params_regex = re.compile(r"\{(.*?)\}")
 invoke_class_regex = re.compile(r"\sL\w+(\/\w+)+(\S)*;->") # Remember to strip whitespace and get rid of `;->`

@@ -92,7 +92,7 @@ def create_summary_feature_vector(instructions, degree, num_total_instr):
         elif instr.itype in ["fill_arr", "arr_get", "arr_put", "iget", "iput", "sget", "sput", "instance_of"]:
             feature_vector[vector_map['transfer']] += 1
 
-        elif instr.itype in ["invoke"]: # TODO: Should we add conditionals here?
+        elif instr.itype in ["invoke"]:             
             feature_vector[vector_map['call']] += 1
         
         elif instr.itype in ["neg", "not", "add", "sub", "mul", "div", "rem", "l_and", "l_or", "l_xor", "shift_l", "shift_r", "u_shift_r", "r_sub"]:
@@ -161,3 +161,33 @@ def output_coo(graph, file_path):
 
     with open(file_path, "w") as coo_file:
         coo_file.write(output)
+
+
+def interactive_graph(graph):
+    with open("graph_draw_template.js", "r") as gt:
+        graph_data = gt.read()
+    
+    graph_data += """function setup() {
+        createCanvas(displayWidth, displayHeight);
+        let prev_ms = millis();
+    """
+
+    for graph_class in graph.classes:
+        for class_methods in graph_class.methods:
+            for basic_block in class_methods.basic_blocks:
+                instructions = ["{}: {}".format(x.line_num, x.instruction.replace("$", "•").replace('"', "'")) for x in basic_block.instructions]
+                instructions = "\n".join(instructions)
+                graph_data += "blocks.set({}, new Block({}, {}, \"{}\", [], {}, {}));\n".format(
+                        basic_block.block_id, 
+                        basic_block.block_id,
+                        repr(instructions),
+                        "Extra text",
+                        random.randint(0, 10000),
+                        random.randint(0, 10000))
+
+                graph_data += "edges.set({}, {});\n".format(basic_block.block_id, str(basic_block.child_block_ids))
+    
+    graph_data += "}"
+
+    with open("ig_test.js", "w") as gfile:
+        gfile.write(graph_data)

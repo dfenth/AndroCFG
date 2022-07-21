@@ -1,31 +1,34 @@
 """
 Extract the CFG from the apk smali code
-Details on operations can be found here:
-https://source.android.com/devices/tech/dalvik/dalvik-bytecode.html
 """
 
 import re
-import logging
-import config
+import argparse
+from config import logger
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile  
+from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile, interactive_graph  
 
-log_to_file = False
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--dir", help="The path to the directory to process", type=str, required=True)
+parser.add_argument("-o", "--out", help="The path of the output file(s)", type=str, default="")
+parser.add_argument("-f", "--format", help="Output graph format", choices=['coo', 'dot'])
+parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg'], required=True) # TODO: Add hybrid (MalGraph style graph)
 
-if log_to_file:
-    handler = logging.FileHandler("file.log")
-else:
-    handler = logging.StreamHandler()
-
-handler.setFormatter(logging.Formatter("%(name)s:%(levelname)s:: %(message)s"))
-logger = logging.getLogger("CFGGen")
-logger.setLevel(config.LOG_LEVEL)
-logger.addHandler(handler)
+args = parser.parse_args()
 
 # List of all files that make up the runnable application
-top_level_dir = "../LoginApp/" # TODO: Get as input from command line
+top_level_dir = args.dir
+
+# Add trailing '/' if necessary
+if top_level_dir[-1] != "/":
+    top_level_dir += "/"
+
+# Set the output directory
+out_dir = ""
+if args.out !=  "" and args.out[-1] != "/":
+    out_dir += "/"
 
 files_to_process = extract_activity_files(top_level_dir+"/AndroidManifest.xml")
 if len(files_to_process) == 0:
@@ -84,7 +87,7 @@ for file in state.file_list:
                 logger.info("Directive encountered - annotation start")
                 state.ANNOTATION_FLAG = True
                 process_instruction(smali_instr, line_num, state, logger)
-            elif op_map["annotation_end"].match(smali_instr): #TODO: Need to handle swap to false instructions here, otherwise we'll miss all end instructions
+            elif op_map["annotation_end"].match(smali_instr): # Need to handle swap to false instructions here, otherwise we'll miss all end instructions
                 logger.info("Directive encountered - annotation end")
                 process_instruction(smali_instr, line_num, state, logger)
                 state.ANNOTATION_FLAG = False
@@ -159,6 +162,17 @@ logger.info("Consumed {} files".format(file_count))
 for f in state.file_list:
     logger.info("\t{}".format(f))
 
-output_cfg_dotfile(state, "testfile.dot")
-output_fcg_dotfile(state, "testfile_fcg.dot")
-output_coo(state, "testfile.coo")
+
+if args.format == "dot" and args.type == "cfg":
+    output_cfg_dotfile(state, out_dir+"graph_cfg.dot")
+
+if args.format == "dot" and args.type == "fcg":
+    output_fcg_dotfile(state, out_dir+"graph_fcg.dot")
+
+if args.format == "coo" and args.type == "cfg":
+    output_coo(state, out_dir+"graph_cfg.coo")
+
+if args.format == "coo" and args.type == "fcg":
+    logger.critical("The COO format for the FCG graph type has not been implemented yet")
+
+# interactive_graph(state)

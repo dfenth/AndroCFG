@@ -1,11 +1,20 @@
-# CFGExt
+# CFGext
 This project contains python code for CFG extraction from the [Smali intermediate langauge](https://github.com/JesusFreke/smali) which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
 
 ### Requirements
 This code was written in python 3.x (3.9 specifically, but any version should work). The only required library is [xmltodict](https://github.com/martinblech/xmltodict) (`pip install xmltodict`) for the manifest file processing.
 
 ### Usage
-WIP - must use `apktools`
+This program operates on apps that have already been disassembled using [apktool](https://ibotpeaches.github.io/Apktool/) with the decode `d` option to decode the manifest file (so the command would be `apktool d <app-to-disassemble>`). This should produce a directory that CFGext can interact with.
+
+To run CFGext use the `extract.py` file with the following command line options (addin the `-h` or `--help` flag will display these options).
+- `-d`/`--dir` - The directory of the disassembled application to process.
+- `-o`/`--out` - The directory where any output graphs should be placed.
+- `-f`/`--format` - `{coo, dot}` the graph output format. `coo` is useful for downstream ML tasks (e.g. Graph Neural Networks etc.) whereas `dot` is useful for graph visualisation.
+- `-t`/`--type` - `{fcg, cfg}` the type of graph to output. The `cfg` option will produce the CFG of the entire (designed) program whereas `fcg` will output the interactions between function calls only.
+
+If a `dot` file is produced it can be compiled to an image using [graphviz](https://graphviz.org/) using a command such as `dot -Tsvg <graph-file>.dot -o <output-image-name>.svg`. Using the `svg` format is recommended since the graphs can get large!
+
 
 ### File overview
 **config.py** - Contains configuration information for the logger which is used to keep track of code execution. By default the logger is set to only show warning level issues and above because a lot of information is generated otherwise. The logger can also be set to debug for a complete walkthrough of the code execution (which is useful for debugging incorrect graphs), or info which logs the code execution at a higher level (not as detailed as debug).
