@@ -166,7 +166,7 @@ def output_coo(graph, file_path):
 def restricted_hybrid_dot(graph, file_path, exp_methods_path):
     """Create a restricted hybrid dot file where only methods which interact with target library functions 
     are expanded into full CFGs (all others remain as single nodes). This creates a hybrid
-    between a CFG and a FCG.
+    between a CFG and a FCG. An empty exp_methods file results in a standard FCG.
     Args:
         graph: Graph - The graph containing the program structure
         file_path: str - The path to save the file to
@@ -177,11 +177,14 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
     with open(exp_methods_path, "r") as exp_file:
         exp_targets = exp_file.readlines()
     
+    # eliminate all new-lines
+    exp_targets = list(map(lambda x: x.strip(), exp_targets))
+
     # Create a dict of method ids and the corresponding names (so we can pair the id a method calls with the name)
     method_dict = {}
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
-            method_dict[class_method.method_id] = graph_class.class_name +"::"+ class_method.method_name
+            method_dict[graph_class.class_name +"::"+ class_method.method_name] = class_method.method_id
     
     print(method_dict)
     exp_method_ids = []
@@ -193,11 +196,13 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
 
     node_def = ""
     edge_def = ""
-
+  
+    
+    # Start by creating a FCG
     for graph_class in graph.classes:
         class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
         for class_method in graph_class.methods:
-
+            # Check if the method needs to be expanded
             for target in class_method.calls_out:
                 if target in exp_method_ids:
                     # If we call out to a salient target expand this method into a CFG
@@ -208,31 +213,33 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
             
             if expand:
                 # This method is a part of the important graph topology
-                for basic_block in class_methods.basic_blocks:
+                print("Expanding method: {}".format(graph_class.class_name + "::" + class_method.method_name))
+                
+                intra_method_ids = []
+                for basic_block in class_method.basic_blocks:
+                    # Get internal ids
+                    intra_method_ids += [basic_block.block_id]
+
+                for basic_block in class_method.basic_blocks:
                     instructions = ["{}: {}".format(x.line_num, x.instruction.replace("$", "•").replace('"', "'")) for x in basic_block.instructions]
                     instructions = "\l".join(instructions) + "\l" # \l for left alignment in the dotfile
-                    node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(basic_block.block_id, class_color, instructions)
+                    node_def += "i{} [shape=box color=\"{}\" label=\"{}\"];\n".format(basic_block.block_id, class_color, instructions)
 
                     for target in basic_block.child_block_ids:
                         # All targets should be first basic block of method, so no changes need to be made to target
-                        edge_def += "{} -> {};\n".format(basic_block.block_id, target)
+                        # Check if target is another method - if it is, don't use the `i` prefix for internal nodes (to avoid method id, block id clashes)
+                        if target in intra_method_ids:
+                            edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
+                        else:
+                            # target will be basic block id of the leading block of the method, so need to convert it to method id TODO
+                            edge_def += "i{} -> {};\n".format(basic_block.block_id, target)
             else:
-                # An unimportant node which is reduced to single function call
-                # node number is the first block id so we can keep normal edge calls
-                reduced_block_id = class_method.basic_blocks[0].block_id
-                node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(reduced_block_id, class_color, graph_class.class_name+"::"+class_method.method_name)
-                # TODO: make sure to add edges to connect from basic_block[0] to other methods if the function returns
+                # Continue as a normal FCG
+                node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, class_method.method_name)
                 for target in class_method.calls_out:
-                    edge_def += "{} -> {};\n".format(reduced_block_id, target)
-                
-                # but src could be a collapsed basic block...
-                """
-                if class_method.return_type != "V":
-                    for src in class_method.calls_in:
-                        edge_def += "{} -> {};\n".format(src, reduced_block_id)
-                """
+                    edge_def += "{} -> {};\n".format(class_method.method_id, target)
 
-            
+
     dot_data = "digraph {\n"
     dot_data += node_def
     dot_data += edge_def
@@ -240,8 +247,6 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
 
     with open(file_path, "w") as dotfile:
         dotfile.write(dot_data)
-
-
 
 
 def interactive_graph(graph):
