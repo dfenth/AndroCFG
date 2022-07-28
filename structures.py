@@ -531,15 +531,15 @@ class Graph():
                 src_block.add_child_block_id(target_method.basic_blocks[0].block_id)
                 target_method.basic_blocks[0].add_parent_block_id(src_block.block_id)
                 
-                src_method_obj.add_call_in(target_method.method_id)
-                target_method.add_call_out(src_method_obj.method_id)
+                src_method_obj.add_call_out(target_method.method_id)
+                target_method.add_call_in(src_method_obj.method_id)
 
                 # Check if the target returns
                 if target_method.return_type != "V":
                     target_method.basic_blocks[-1].add_child_block_id(src_block.block_id)
                     src_block.add_parent_block_id(target_method.basic_blocks[-1].block_id)
-                    src_method_obj.add_call_out(target_method.method_id)
-                    target_method.add_call_in(src_method_obj.method_id)
+                    src_method_obj.add_call_in(target_method.method_id)
+                    target_method.add_call_out(src_method_obj.method_id)
 
 
         return report
