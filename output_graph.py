@@ -163,15 +163,91 @@ def output_coo(graph, file_path):
         coo_file.write(output)
 
 
+def restricted_hybrid_dot(graph, file_path, exp_methods_path):
+    """Create a restricted hybrid dot file where only methods which interact with target library functions 
+    are expanded into full CFGs (all others remain as single nodes). This creates a hybrid
+    between a CFG and a FCG.
+    Args:
+        graph: Graph - The graph containing the program structure
+        file_path: str - The path to save the file to
+        exp_methods_path: str - The path to the file containing all the methods to be expanded
+    """
+    # TODO: May need to do some index manipulation for the COO generation (to avoid larger matrices than necessary)
+    # Read in the target methods to expand
+    with open(exp_methods_path, "r") as exp_file:
+        exp_targets = exp_file.readlines()
+    
+    # Create a dict of method ids and the corresponding names (so we can pair the id a method calls with the name)
+    method_dict = {}
+    for graph_class in graph.classes:
+        for class_method in graph_class.methods:
+            method_dict[class_method.method_id] = graph_class.class_name +"::"+ class_method.method_name
+    
+    print(method_dict)
+    exp_method_ids = []
+    for target in exp_targets:
+        try:
+            exp_method_ids += [method_dict[target]]
+        except:
+            print("Target: {} not present in app".format(target))
+
+    node_def = ""
+    edge_def = ""
+
+    for graph_class in graph.classes:
+        class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
+        for class_method in graph_class.methods:
+
+            for target in class_method.calls_out:
+                if target in exp_method_ids:
+                    # If we call out to a salient target expand this method into a CFG
+                    expand = True
+                    break
+            else:
+                expand = False
+            
+            if expand:
+                # This method is a part of the important graph topology
+                for basic_block in class_methods.basic_blocks:
+                    instructions = ["{}: {}".format(x.line_num, x.instruction.replace("$", "•").replace('"', "'")) for x in basic_block.instructions]
+                    instructions = "\l".join(instructions) + "\l" # \l for left alignment in the dotfile
+                    node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(basic_block.block_id, class_color, instructions)
+
+                    for target in basic_block.child_block_ids:
+                        # All targets should be first basic block of method, so no changes need to be made to target
+                        edge_def += "{} -> {};\n".format(basic_block.block_id, target)
+            else:
+                # An unimportant node which is reduced to single function call
+                # node number is the first block id so we can keep normal edge calls
+                reduced_block_id = class_method.basic_blocks[0].block_id
+                node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(reduced_block_id, class_color, graph_class.class_name+"::"+class_method.method_name)
+                # TODO: make sure to add edges to connect from basic_block[0] to other methods if the function returns
+                for target in class_method.calls_out:
+                    edge_def += "{} -> {};\n".format(reduced_block_id, target)
+                
+                # but src could be a collapsed basic block...
+                """
+                if class_method.return_type != "V":
+                    for src in class_method.calls_in:
+                        edge_def += "{} -> {};\n".format(src, reduced_block_id)
+                """
+
+            
+    dot_data = "digraph {\n"
+    dot_data += node_def
+    dot_data += edge_def
+    dot_data += "}\n"
+
+    with open(file_path, "w") as dotfile:
+        dotfile.write(dot_data)
+
+
+
+
 def interactive_graph(graph):
     with open("graph_draw_template.js", "r") as gt:
         graph_data = gt.read()
     
-    graph_data += """function setup() {
-        createCanvas(displayWidth, displayHeight);
-        let prev_ms = millis();
-    """
-
     for graph_class in graph.classes:
         for class_methods in graph_class.methods:
             for basic_block in class_methods.basic_blocks:

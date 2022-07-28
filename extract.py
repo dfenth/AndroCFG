@@ -8,13 +8,13 @@ from config import logger
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile, interactive_graph  
+from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile, interactive_graph, restricted_hybrid_dot 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", help="The path to the directory to process", type=str, required=True)
 parser.add_argument("-o", "--out", help="The path of the output file(s)", type=str, default="")
 parser.add_argument("-f", "--format", help="Output graph format", choices=['coo', 'dot'])
-parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg'], required=True) # TODO: Add hybrid (MalGraph style graph)
+parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg', 'hybrid'], required=True) # TODO: Add hybrid (MalGraph style graph)
 
 args = parser.parse_args()
 
@@ -131,7 +131,6 @@ for file in state.file_list:
                 process_instruction(smali_instr, line_num, state, logger)
 
             
-
     # We have processed the entire file, so offload the blocks, methods and classes to the state
     state.active_method.add_basic_block(state.active_block)
     state.active_class.add_method(state.active_method)
@@ -169,10 +168,20 @@ if args.format == "dot" and args.type == "cfg":
 if args.format == "dot" and args.type == "fcg":
     output_fcg_dotfile(state, out_dir+"graph_fcg.dot")
 
+if args.format == "dot" and args.type == "hybrid":
+    restricted_hybrid_dot(state, out_dir+"graph_hybrid.dot", "list_to_expand.txt") # TODO: Replace hard-coded file
+
 if args.format == "coo" and args.type == "cfg":
     output_coo(state, out_dir+"graph_cfg.coo")
 
 if args.format == "coo" and args.type == "fcg":
     logger.critical("The COO format for the FCG graph type has not been implemented yet")
+
+
+"""
+# MalGraph experiment
+import malgraph_extract
+malgraph_extract.extract_library_functions(state)
+"""
 
 # interactive_graph(state)
