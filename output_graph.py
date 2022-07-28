@@ -180,12 +180,18 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
     # eliminate all new-lines
     exp_targets = list(map(lambda x: x.strip(), exp_targets))
 
-    # Create a dict of method ids and the corresponding names (so we can pair the id a method calls with the name)
+    # Create a dict of method names as keys and ids as values (so we can pair the id a method calls with the name)
     method_dict = {}
+    block_method_map = {}
+    method_block_map = {}
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
             method_dict[graph_class.class_name +"::"+ class_method.method_name] = class_method.method_id
-    
+            method_block_map[class_method.method_id] = class_method.basic_blocks[0].block_id
+            # Create a map from block id to the containing method
+            for block in class_method.basic_blocks:
+                block_method_map[block.block_id] = class_method.method_id
+
     print(method_dict)
     exp_method_ids = []
     for target in exp_targets:
@@ -194,10 +200,24 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
         except:
             print("Target: {} not present in app".format(target))
 
+    # Create a map from method id to leading block id
+    # Only do this for the expanded methods
+
     node_def = ""
     edge_def = ""
-  
     
+    actual_expanded_methods = []
+    for graph_class in graph.classes:
+        for class_method in graph_class.methods:
+            # Check if the method needs to be expanded
+            for target in class_method.calls_out:
+                if target in exp_method_ids:
+                    # If we call out to a salient target expand this method into a CFG
+                    actual_expanded_methods += [class_method.method_id]
+                    break
+    
+    print("AEM", actual_expanded_methods)
+
     # Start by creating a FCG
     for graph_class in graph.classes:
         class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
@@ -231,14 +251,19 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                         if target in intra_method_ids:
                             edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
                         else:
-                            # target will be basic block id of the leading block of the method, so need to convert it to method id TODO
-                            edge_def += "i{} -> {};\n".format(basic_block.block_id, target)
+                            # target will be basic block id of the leading block of the method, so need to convert it to method id
+                            print("External connection!") # TODO: Still not connected to onChanged...
+                            edge_def += "i{} -> {};\n".format(basic_block.block_id, block_method_map[target])
             else:
                 # Continue as a normal FCG
-                node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, class_method.method_name)
+                node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, graph_class.class_name + "::" + class_method.method_name)
                 for target in class_method.calls_out:
-                    edge_def += "{} -> {};\n".format(class_method.method_id, target)
-
+                    # check if target has been expanded
+                    if target in actual_expanded_methods:
+                        edge_def += "{} -> i{};\n".format(class_method.method_id, method_block_map[target])
+                        print("Node has been expanded!")
+                    else:
+                        edge_def += "{} -> {};\n".format(class_method.method_id, target)
 
     dot_data = "digraph {\n"
     dot_data += node_def
