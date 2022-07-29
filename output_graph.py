@@ -45,7 +45,7 @@ def output_fcg_dotfile(graph, file_path):
     for graph_class in graph.classes:
         class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
         for class_method in graph_class.methods:
-            node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, class_method.method_name)
+            node_def += "{} [shape=box color=\"{}\" label=\"{}\"];\n".format(class_method.method_id, class_color, graph_class.class_name + "::" + class_method.method_name)
             
             for target in class_method.calls_out:
                 edge_def += "{} -> {};\n".format(class_method.method_id, target)
@@ -181,31 +181,49 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
     exp_targets = list(map(lambda x: x.strip(), exp_targets))
 
     # Create a dict of method names as keys and ids as values (so we can pair the id a method calls with the name)
-    method_dict = {}
+    method_id_map = {}
+    id_method_map = {} # JUST FOR DEBUGGING TODO Remove
     block_method_map = {}
     method_block_map = {}
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
-            method_dict[graph_class.class_name +"::"+ class_method.method_name] = class_method.method_id
+            print(graph_class.class_name +"::"+ class_method.method_name)
+            print(" {}".format(class_method.param_types))
+            # method_id_map stores a list to account for duplciates (overload can occur when different parameters are expected)
+            try:
+                method_id_map[graph_class.class_name +"::"+ class_method.method_name] += [class_method.method_id]
+            except:
+                method_id_map[graph_class.class_name +"::"+ class_method.method_name] = [class_method.method_id]
+            
+            id_method_map[class_method.method_id] = graph_class.class_name +"::"+ class_method.method_name
             method_block_map[class_method.method_id] = class_method.basic_blocks[0].block_id
             # Create a map from block id to the containing method
             for block in class_method.basic_blocks:
                 block_method_map[block.block_id] = class_method.method_id
 
-    print(method_dict)
+    print(method_id_map)
     exp_method_ids = []
     for target in exp_targets:
-        try:
-            exp_method_ids += [method_dict[target]]
-        except:
-            print("Target: {} not present in app".format(target))
-
-    # Create a map from method id to leading block id
-    # Only do this for the expanded methods
+        # Check if `*` in target and add all methods of the class if present
+        if "*" in target:
+            target_class = target.split("::")[0]
+            for k in method_id_map.keys():
+                k_class = k.split("::")[0]                 
+                if target_class == k_class:
+                    print("Match found: {} == {}".format(target, k))
+                    exp_method_ids += method_id_map[k]
+        else:
+            for k in method_id_map.keys():
+                if target == k:
+                    print("Non glob match found: {} == {}".format(target, k))
+                    exp_method_ids += method_id_map[k]
 
     node_def = ""
     edge_def = ""
     
+    print("Exp method ids:", exp_method_ids)
+
+    # Find all of the methods to be expanded
     actual_expanded_methods = []
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
@@ -216,8 +234,6 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                     actual_expanded_methods += [class_method.method_id]
                     break
     
-    print("AEM", actual_expanded_methods)
-
     # Start by creating a FCG
     for graph_class in graph.classes:
         class_color = "#{}".format("".join(random.choice("0123456789abcedf") for _ in range(6))) # generate a random color per class for the nodes
@@ -250,9 +266,13 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                         # Check if target is another method - if it is, don't use the `i` prefix for internal nodes (to avoid method id, block id clashes)
                         if target in intra_method_ids:
                             edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
+                        elif block_method_map[target] in actual_expanded_methods:
+                            # Check if the target has been expanded and link to start block if it has (rather than method)
+                            print("External connection to expanded method! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
+                            edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
                         else:
                             # target will be basic block id of the leading block of the method, so need to convert it to method id
-                            print("External connection!") # TODO: Still not connected to onChanged...
+                            print("External connection! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
                             edge_def += "i{} -> {};\n".format(basic_block.block_id, block_method_map[target])
             else:
                 # Continue as a normal FCG
