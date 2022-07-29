@@ -269,7 +269,7 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                         elif block_method_map[target] in actual_expanded_methods:
                             # Check if the target has been expanded and link to start block if it has (rather than method)
                             print("External connection to expanded method! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
-                            edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
+                            edge_def += "i{} -> i{};\n".format(basic_block.block_id, target) # I don't think errors will happen here... TODO Check! 
                         else:
                             # target will be basic block id of the leading block of the method, so need to convert it to method id
                             print("External connection! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))

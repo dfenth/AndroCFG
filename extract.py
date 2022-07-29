@@ -15,6 +15,7 @@ parser.add_argument("-d", "--dir", help="The path to the directory to process", 
 parser.add_argument("-o", "--out", help="The path of the output file(s)", type=str, default="")
 parser.add_argument("-f", "--format", help="Output graph format", choices=['coo', 'dot'])
 parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg', 'hybrid'], required=True) # TODO: Add hybrid (MalGraph style graph)
+parser.add_argument("-e", "--exp_methods", help="Path to the expansion methods file", type=str, default="") # TODO: Add hybrid (MalGraph style graph)
 
 args = parser.parse_args()
 
@@ -169,7 +170,10 @@ if args.format == "dot" and args.type == "fcg":
     output_fcg_dotfile(state, out_dir+"graph_fcg.dot")
 
 if args.format == "dot" and args.type == "hybrid":
-    restricted_hybrid_dot(state, out_dir+"graph_hybrid.dot", "list_to_expand.txt") # TODO: Replace hard-coded file
+    if args.exp_methods == "":
+        logger.critical("Method expansion file not specified -- Please specify a path to a method expansion file using -e")
+    else:
+        restricted_hybrid_dot(state, out_dir+"graph_hybrid.dot", args.exp_methods)
 
 if args.format == "coo" and args.type == "cfg":
     output_coo(state, out_dir+"graph_cfg.coo")

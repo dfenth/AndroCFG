@@ -11,10 +11,12 @@ To run CFGext use the `extract.py` file with the following command line options 
 - `-d`/`--dir` - The directory of the disassembled application to process.
 - `-o`/`--out` - The directory where any output graphs should be placed.
 - `-f`/`--format` - `{coo, dot}` the graph output format. `coo` is useful for downstream ML tasks (e.g. Graph Neural Networks etc.) whereas `dot` is useful for graph visualisation.
-- `-t`/`--type` - `{fcg, cfg}` the type of graph to output. The `cfg` option will produce the CFG of the entire (designed) program whereas `fcg` will output the interactions between function calls only.
+- `-t`/`--type` - `{fcg, cfg, hybrid}` the type of graph to output. The `cfg` option will produce the CFG of the entire (designed) program whereas `fcg` will output the interactions between function calls only.`hybrid` creates a graph which is a hybrid between a FCG and a CFG where methods that interact with defined nodes are expanded into CFGs.
+- `-e`/`--exp_methods` - The path to a method expansion file (used for `-t hybrid` only). See below for the file specification.
 
 If a `dot` file is produced it can be compiled to an image using [graphviz](https://graphviz.org/) using a command such as `dot -Tsvg <graph-file>.dot -o <output-image-name>.svg`. Using the `svg` format is recommended since the graphs can get large!
 
+The `hybrid` selection for `--type` also takes a file as input which specifies target nodes. These are not the nodes that are expanded, but nodes connected to them are expanded into their full CFGs. This allows us to perform expansion on the graph around library functions which are often used maliciously. The file format is a line separated list of targets which is formatted as `class-name::method-name`. If you want all of the methods from a class included as a target you can use `class-name::*`. This file path is passed to the program using `-e`/`--exp_methods`.
 
 ### File overview
 **config.py** - Contains configuration information for the logger which is used to keep track of code execution. By default the logger is set to only show warning level issues and above because a lot of information is generated otherwise. The logger can also be set to debug for a complete walkthrough of the code execution (which is useful for debugging incorrect graphs), or info which logs the code execution at a higher level (not as detailed as debug).
