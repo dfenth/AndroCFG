@@ -8,7 +8,7 @@ from config import logger
 from structures import Graph 
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_cfg_dotfile, output_coo, output_fcg_dotfile, interactive_graph, restricted_hybrid_dot 
+from output_graph import output_cfg_dotfile, output_cfg_coo, output_fcg_dotfile, output_fcg_coo, restricted_hybrid_dot, restricted_hybrid_coo, interactive_graph
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", help="The path to the directory to process", type=str, required=True)
@@ -175,11 +175,17 @@ if args.format == "dot" and args.type == "hybrid":
     else:
         restricted_hybrid_dot(state, out_dir+"graph_hybrid.dot", args.exp_methods)
 
+if args.format == "coo" and args.type == "hybrid":
+    if args.exp_methods == "":
+        logger.critical("Method expansion file not specified -- Please specify a path to a method expansion file using -e")
+    else:
+        restricted_hybrid_coo(state, out_dir+"graph_hybrid.coo", args.exp_methods)
+
 if args.format == "coo" and args.type == "cfg":
-    output_coo(state, out_dir+"graph_cfg.coo")
+    output_cfg_coo(state, out_dir+"graph_cfg.coo")
 
 if args.format == "coo" and args.type == "fcg":
-    logger.critical("The COO format for the FCG graph type has not been implemented yet")
+    output_fcg_coo(state, out_dir+"graph_fcg.coo")
 
 
 """
