@@ -24,7 +24,7 @@ top_level_dir = args.dir
 
 # Add trailing '/' if necessary
 if top_level_dir[-1] != "/":
-    top_level_dir += "/"YY
+    top_level_dir += "/"
 
 # Get the name of the output file (sha256)Y
 out_file_name = top_level_dir.split("/")[-2]
