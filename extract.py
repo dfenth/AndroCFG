@@ -24,7 +24,10 @@ top_level_dir = args.dir
 
 # Add trailing '/' if necessary
 if top_level_dir[-1] != "/":
-    top_level_dir += "/"
+    top_level_dir += "/"YY
+
+# Get the name of the output file (sha256)Y
+out_file_name = top_level_dir.split("/")[-2]
 
 # Set the output directory
 out_dir = ""
@@ -164,28 +167,28 @@ for f in state.file_list:
 
 
 if args.format == "dot" and args.type == "cfg":
-    output_cfg_dotfile(state, out_dir+"graph_cfg.dot")
+    output_cfg_dotfile(state, out_dir+out_file_name+".dot")
 
 if args.format == "dot" and args.type == "fcg":
-    output_fcg_dotfile(state, out_dir+"graph_fcg.dot")
+    output_fcg_dotfile(state, out_dir+out_file_name+".dot")
 
 if args.format == "dot" and args.type == "hybrid":
     if args.exp_methods == "":
         logger.critical("Method expansion file not specified -- Please specify a path to a method expansion file using -e")
     else:
-        restricted_hybrid_dot(state, out_dir+"graph_hybrid.dot", args.exp_methods)
+        restricted_hybrid_dot(state, out_dir+out_file_name+".dot", args.exp_methods)
 
 if args.format == "coo" and args.type == "hybrid":
     if args.exp_methods == "":
         logger.critical("Method expansion file not specified -- Please specify a path to a method expansion file using -e")
     else:
-        restricted_hybrid_coo(state, out_dir+"graph_hybrid.coo", args.exp_methods)
+        restricted_hybrid_coo(state, out_dir+out_file_name+".coo", args.exp_methods)
 
 if args.format == "coo" and args.type == "cfg":
-    output_cfg_coo(state, out_dir+"graph_cfg.coo")
+    output_cfg_coo(state, out_dir+out_file_name+".coo")
 
 if args.format == "coo" and args.type == "fcg":
-    output_fcg_coo(state, out_dir+"graph_fcg.coo")
+    output_fcg_coo(state, out_dir+out_file_name+".coo")
 
 
 """
