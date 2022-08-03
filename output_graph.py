@@ -3,6 +3,7 @@ Output the generated graph in various formats
 """
 from structures import Graph
 import random
+from config import logger
 
 def output_cfg_dotfile(graph, file_path):
     """Output the CFG in digraph form (useful for visualisation with graphviz)
@@ -211,6 +212,22 @@ def output_fcg_coo(graph, filepath):
     with open(filepath, "w") as coo_file:
         coo_file.write(output)
 
+def extract_target_methods(path):
+    """Extract the methods from file which will be used to expand connected methods into CFGs
+    Args:
+        path: str - Path to the file
+    Returns:
+        [str] - A list of extracted methods
+    """
+    # Read in the target methods use to define expansion
+    with open(path, "r") as exp_file:
+        exp_targets = exp_file.readlines()
+    
+    # eliminate all new-lines
+    exp_targets = list(map(lambda x: x.strip(), exp_targets))
+    exp_targets = list(filter(lambda x: (not "#" in x) and (x != ""), exp_targets)) # Get rid of comments and empty lines
+    return exp_targets
+
 
 def restricted_hybrid_dot(graph, file_path, exp_methods_path):
     """Create a restricted hybrid dot file where only methods which interact with target library functions 
@@ -222,34 +239,26 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
         exp_methods_path: str - The path to the file containing all the methods to be expanded
     """
     # Read in the target methods to expand
-    with open(exp_methods_path, "r") as exp_file:
-        exp_targets = exp_file.readlines()
+    exp_targets = extract_target_methods(exp_methods_path)
+    logger.info("Using following nodes for expansion: {}".format(exp_targets))
     
-    # eliminate all new-lines
-    exp_targets = list(map(lambda x: x.strip(), exp_targets))
-
     # Create a dict of method names as keys and ids as values (so we can pair the id a method calls with the name)
     method_id_map = {}
-    id_method_map = {} # JUST FOR DEBUGGING TODO Remove
     block_method_map = {}
     method_block_map = {}
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
-            print(graph_class.class_name +"::"+ class_method.method_name)
-            print(" {}".format(class_method.param_types))
             # method_id_map stores a list to account for duplciates (overload can occur when different parameters are expected)
             try:
                 method_id_map[graph_class.class_name +"::"+ class_method.method_name] += [class_method.method_id]
             except:
                 method_id_map[graph_class.class_name +"::"+ class_method.method_name] = [class_method.method_id]
             
-            id_method_map[class_method.method_id] = graph_class.class_name +"::"+ class_method.method_name
             method_block_map[class_method.method_id] = class_method.basic_blocks[0].block_id
             # Create a map from block id to the containing method
             for block in class_method.basic_blocks:
                 block_method_map[block.block_id] = class_method.method_id
 
-    print(method_id_map)
     exp_method_ids = []
     for target in exp_targets:
         # Check if `*` in target and add all methods of the class if present
@@ -258,19 +267,17 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
             for k in method_id_map.keys():
                 k_class = k.split("::")[0]                 
                 if target_class == k_class:
-                    print("Match found: {} == {}".format(target, k))
+                    logger.debug("Match found: {} == {}".format(target, k))
                     exp_method_ids += method_id_map[k]
         else:
             for k in method_id_map.keys():
                 if target == k:
-                    print("Non glob match found: {} == {}".format(target, k))
+                    logger.debug("Non glob match found: {} == {}".format(target, k))
                     exp_method_ids += method_id_map[k]
 
     node_def = ""
     edge_def = ""
     
-    print("Exp method ids:", exp_method_ids)
-
     # Find all of the methods to be expanded
     actual_expanded_methods = []
     for graph_class in graph.classes:
@@ -297,7 +304,7 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
             
             if expand:
                 # This method is a part of the important graph topology
-                print("Expanding method: {}".format(graph_class.class_name + "::" + class_method.method_name))
+                logger.debug("Expanding method: {}".format(graph_class.class_name + "::" + class_method.method_name))
                 
                 intra_method_ids = []
                 for basic_block in class_method.basic_blocks:
@@ -316,11 +323,9 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                             edge_def += "i{} -> i{};\n".format(basic_block.block_id, target)
                         elif block_method_map[target] in actual_expanded_methods:
                             # Check if the target has been expanded and link to start block if it has (rather than method)
-                            print("External connection to expanded method! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
                             edge_def += "i{} -> i{};\n".format(basic_block.block_id, target) # I don't think errors will happen here... TODO Check! 
                         else:
                             # target will be basic block id of the leading block of the method, so need to convert it to method id
-                            print("External connection! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
                             edge_def += "i{} -> {};\n".format(basic_block.block_id, block_method_map[target])
             else:
                 # Continue as a normal FCG
@@ -329,7 +334,6 @@ def restricted_hybrid_dot(graph, file_path, exp_methods_path):
                     # check if target has been expanded
                     if target in actual_expanded_methods:
                         edge_def += "{} -> i{};\n".format(class_method.method_id, method_block_map[target])
-                        print("Node has been expanded!")
                     else:
                         edge_def += "{} -> {};\n".format(class_method.method_id, target)
 
@@ -357,30 +361,23 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
     edges = {} # dictionary with key vertex and values connected vertices
     
     # Read in the target methods which cause expansion
-    with open(exp_methods_path, "r") as exp_file:
-        exp_targets = exp_file.readlines()
-    
-    # eliminate all new-lines
-    exp_targets = list(map(lambda x: x.strip(), exp_targets))
+    exp_targets = extract_target_methods(exp_methods_path)
+    logger.info("Using following nodes for expansion: {}".format(exp_targets))
 
     # Create a dict of method names as keys and ids as values (so we can pair the id a method calls with the name)
     method_id_map = {}
-    id_method_map = {} # JUST FOR DEBUGGING TODO Remove
     block_method_map = {}
     method_block_map = {}
     for graph_class in graph.classes:
         for class_method in graph_class.methods:
             global_id_map["m"+str(class_method.method_id)] = global_idx 
             global_idx += 1
-            print(graph_class.class_name +"::"+ class_method.method_name)
-            print(" {}".format(class_method.param_types))
             # method_id_map stores a list to account for duplciates (overload can occur when different parameters are expected)
             try:
                 method_id_map[graph_class.class_name +"::"+ class_method.method_name] += [class_method.method_id]
             except:
                 method_id_map[graph_class.class_name +"::"+ class_method.method_name] = [class_method.method_id]
             
-            id_method_map[class_method.method_id] = graph_class.class_name +"::"+ class_method.method_name
             method_block_map[class_method.method_id] = class_method.basic_blocks[0].block_id
             # Create a map from block id to the containing method
             for block in class_method.basic_blocks:
@@ -388,7 +385,6 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                 global_idx += 1
                 block_method_map[block.block_id] = class_method.method_id
 
-    print(method_id_map)
     # Get all the method ids that cause expansion
     exp_method_ids = []
     for target in exp_targets:
@@ -398,15 +394,13 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
             for k in method_id_map.keys():
                 k_class = k.split("::")[0]                 
                 if target_class == k_class:
-                    print("Match found: {} == {}".format(target, k))
+                    logger.debug("Match found: {} == {}".format(target, k))
                     exp_method_ids += method_id_map[k]
         else:
             for k in method_id_map.keys():
                 if target == k:
-                    print("Non glob match found: {} == {}".format(target, k))
+                    logger.debug("Non glob match found: {} == {}".format(target, k))
                     exp_method_ids += method_id_map[k]
-
-    print("Exp method ids:", exp_method_ids)
 
     # Find all of the methods to be expanded
     actual_expanded_methods = []
@@ -433,7 +427,7 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
             
             if expand:
                 # This method is a part of the important graph topology
-                print("Expanding method: {}".format(graph_class.class_name + "::" + class_method.method_name))
+                logger.debug("Expanding method: {}".format(graph_class.class_name + "::" + class_method.method_name))
                 
                 # Get intra-method ids so we can keep internal method calls consistent (we don't accidentally make a call to an external method)
                 intra_method_ids = []
@@ -448,7 +442,7 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                         src_id = global_id_map[b_id]
                         vertices += [src_id]
                     except:
-                        print("ID search failed! 1")
+                        logger.debug("ID search failed! 1")
 
                     for target in basic_block.child_block_ids:
                         # All targets should be first basic block of method, so no changes need to be made to target
@@ -458,7 +452,7 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                             try:
                                 target_id = global_id_map[t_id]
                             except:
-                                print("Fail 2") 
+                                logger.debug("Fail 2") 
                             # Add as an edge
                             try:
                                 edges[src_id] += [target_id]
@@ -467,12 +461,11 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
 
                         elif block_method_map[target] in actual_expanded_methods:
                             # Check if the target has been expanded and link to start block if it has (rather than method)
-                            print("External connection to expanded method! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
                             t_id = "b"+str(target)
                             try:
                                 target_id = global_id_map[t_id]
                             except:
-                                print("Fail 3") 
+                                logger.debug("Fail 3") 
                             
                             try:
                                 edges[src_id] += [target_id]
@@ -481,12 +474,11 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
 
                         else:
                             # target will be basic block id of the leading block of the method, so need to convert it to method id
-                            print("External connection! i{} -> {} ~> {} ~> {}".format(basic_block.block_id, target, block_method_map[target], id_method_map[block_method_map[target]]))
                             t_id = "b"+str(target)
                             try:
                                 target_id = global_id_map[t_id]
                             except:
-                                print("Fail 4")
+                                logger.debug("Fail 4")
 
                             try:
                                 edges[src_id] += [target_id]
@@ -500,17 +492,16 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                     src_id = global_id_map[m_id]
                     vertices += [src_id]
                 except:
-                    print("Fail 5")
+                    logger.debug("Fail 5")
 
                 for target in class_method.calls_out:
                     # check if target has been expanded
                     if target in actual_expanded_methods:
-                        print("Node has been expanded!")
                         t_id = "b"+str(method_block_map[target])
                         try:
                             target_id = global_id_map[t_id]
                         except:
-                            print("Fail 6")
+                            logger.debug("Fail 6")
 
                         try:
                             edges[src_id] += [target_id]
@@ -522,7 +513,7 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                         try:
                             target_id = global_id_map[t_id]
                         except:
-                            print("Fail 7")
+                            logger.debug("Fail 7")
 
                         try:
                             edges[src_id] += [target_id]
