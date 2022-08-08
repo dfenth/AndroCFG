@@ -63,6 +63,7 @@ def output_fcg_dotfile(graph, file_path):
 def create_summary_feature_vector(instructions, degree, num_total_instr):
     """A function which allows us to create feature vectors from the instructions of a basic block.
     This is a simple summary method which counts groups of.itypes of instruction and returns the resulting vector.
+    (from MAGIC paper)
     Args:
         instructions: [Instruction] - The instructions to process
         degree: int - The degree of the basic block the instructions belong to

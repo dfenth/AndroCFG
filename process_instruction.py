@@ -350,15 +350,20 @@ def process_instruction(instr, line_num, state, logger):
             # add to the list of invocations to sort later!
             state.active_class.add_invocation(instr, state.active_method.method_id, state.active_block.block_id, state.file_list)
         
-        elif op_map["line"].match(instr):
-            # do nothing! .line is a disassembly artifact we don't need!
-            pass
-        else:
-            # Catch for all other instructions
-            logger.debug("Instruction fallthrough: {}".format(instr))
-            instruction = Instruction(
+        elif op_map["const"].match(instr):
+            if "const-string" in instr:
+                instruction = Instruction(
                     instr, 
-                    "other", 
+                    "const-string", 
+                    state.instruction_id, 
+                    line_num, 
+                    state.active_method.method_id, 
+                    state.active_class.class_id, 
+                    state.active_block.block_id)
+            else:
+                instruction = Instruction(
+                    instr, 
+                    "const", 
                     state.instruction_id, 
                     line_num, 
                     state.active_method.method_id, 
@@ -367,6 +372,42 @@ def process_instruction(instr, line_num, state, logger):
 
             state.instruction_id += 1
             
+            if state.block_term:
+                terminate_and_start_block(state, instruction)
+            else:
+                state.active_block.add_instruction(instruction)
+
+        elif op_map["line"].match(instr):
+            # do nothing! .line is a disassembly artifact we don't need!
+            pass
+        else:
+            # Catch for all other instructions and iterate through the dictionary to annotate the type
+            logger.debug("Instruction fallthrough: {}".format(instr))
+            for k in op_map.keys():
+                if op_map[k].match(instr):
+                    instruction = Instruction(
+                        instr, 
+                        k, 
+                        state.instruction_id, 
+                        line_num, 
+                        state.active_method.method_id, 
+                        state.active_class.class_id, 
+                        state.active_block.block_id)
+
+                    state.instruction_id += 1
+                    break
+            else:
+                instruction = Instruction(
+                    instr, 
+                    "other", 
+                    state.instruction_id, 
+                    line_num, 
+                    state.active_method.method_id, 
+                    state.active_class.class_id, 
+                    state.active_block.block_id)
+
+                state.instruction_id += 1
+
             if state.block_term:
                 terminate_and_start_block(state, instruction)
             else:

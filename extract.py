@@ -14,8 +14,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", help="The path to the directory to process", type=str, required=True)
 parser.add_argument("-o", "--out", help="The path of the output file(s)", type=str, default="")
 parser.add_argument("-f", "--format", help="Output graph format", choices=['coo', 'dot'])
-parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg', 'hybrid'], required=True) # TODO: Add hybrid (MalGraph style graph)
-parser.add_argument("-e", "--exp_methods", help="Path to the expansion methods file", type=str, default="") # TODO: Add hybrid (MalGraph style graph)
+parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg', 'hybrid'])
+parser.add_argument("-e", "--exp_methods", help="Path to the expansion methods file", type=str, default="")
+parser.add_argument("-s", "--special", help="Special extraction type using a specific paper implementation (no other arguments apart from -d required)", choices=["cfgexplainer", "malgraph"])
 
 args = parser.parse_args()
 
@@ -190,6 +191,9 @@ if args.format == "coo" and args.type == "cfg":
 if args.format == "coo" and args.type == "fcg":
     output_fcg_coo(state, out_dir+out_file_name+".coo")
 
+if args.special == "cfgexplainer":
+    from cfgexplainer_extract import output_cfgexplainer_coo
+    output_cfgexplainer_coo(state, out_dir+out_file_name+"cfgexplainer.coo")
 
 """
 # MalGraph experiment
