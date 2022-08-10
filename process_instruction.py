@@ -143,8 +143,9 @@ def process_instruction(instr, line_num, state, logger):
         if op_map["pswitch_start"].match(instr) or op_map["sswitch_start"].match(instr):
             state.active_method.previous_label = state.active_block.instructions[-1].instruction
             state.active_method.label_aliases[state.active_method.previous_label] = []
-       
-            state.active_block = None # Reset the active block since this isn't a real control flow!
+            
+            # switch statements can appear in the middle of normal methods, so don't reset the active block!
+            # state.active_block = None # Reset the active block since this isn't a real control flow!
         
         elif op_map["label"].match(instr):
             # Add the instruction as an alias
