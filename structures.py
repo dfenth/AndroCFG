@@ -5,7 +5,7 @@ import re
 from config import logger
 
 invoke_params_regex = re.compile(r"\{(.*?)\}")
-invoke_class_regex = re.compile(r"\sL\w+(\/\w+)+(\S)*;->") # Remember to strip whitespace and get rid of `;->`
+invoke_class_regex = re.compile(r"\s(\[)*L\w+(\/\w+)+(\S)*;->") # Remember to strip whitespace and get rid of `;->` and `[`
 
 class Instruction():
     """An instruction class for storing all of the attributes
@@ -302,7 +302,7 @@ class SmaliClass():
         logger.debug("Instr to process: {}".format(instr))
         logger.debug("Match: {}".format(invoke_class_regex.search(instr).group(0)))
         target_class = invoke_class_regex.search(instr).group(0)
-        target_class = target_class.strip().replace(";->", "")
+        target_class = target_class.strip().replace(";->", "").replace("[", "")
         target_method = instr.split("->")[-1]
         target_method = target_method.strip()
         
