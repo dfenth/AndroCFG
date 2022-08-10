@@ -4,6 +4,7 @@ Extract the CFG from the apk smali code
 
 import re
 import argparse
+import glob
 from config import logger
 from structures import Graph 
 from process_instruction import process_instruction, op_map
@@ -57,8 +58,25 @@ for file in state.file_list:
         with open(file, "r") as smali_file:
             smali_instructions = smali_file.readlines()
     except Exception as e:
-        logger.critical("Failed to open file: {} -- stopping execution!".format(file))
-        exit()
+        # If we can't open the file as given in the manifest, search the directory for it
+        target_file = file.split("/")[-1]
+        logger.warning("Failed to open file: {} -- attempting deeper search for {}".format(file, target_file))
+        
+        for f in glob.glob(top_level_dir+"**/*.smali"):
+            if f == target_file:
+                logger.warning("Found matching file in search: {}".format(f))
+                # Try to open the file again!
+                try:
+                    with open(f, "r") as smali_file:
+                        smali_instructions = smali_file.readlines()
+                except Exception as e:
+                    logger.critical("Failed to open file: {} -- terminating".format(f)) 
+                    exit()
+
+                break
+        else:
+            logger.critical("Failed to find a file which matches {} -- terminating".format(target_file))
+            exit()
 
     # Special processing cases (where we have defined start and end directives)
     # annotations
