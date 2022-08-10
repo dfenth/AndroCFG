@@ -199,16 +199,18 @@ def process_instruction(instr, line_num, state, logger):
                 state.block_term = False
                 
         elif op_map["method_end"].match(instr):
-            # Set the block termination flag to end the current method
-            
-            instruction = Instruction(
-                    instr, 
-                    "method_end", 
-                    state.instruction_id, 
-                    line_num, 
-                    state.active_method.method_id, 
-                    state.active_class.class_id, 
-                    state.active_block.block_id)
+            try: 
+                instruction = Instruction(
+                        instr, 
+                        "method_end", 
+                        state.instruction_id, 
+                        line_num, 
+                        state.active_method.method_id, 
+                        state.active_class.class_id, 
+                        state.active_block.block_id)
+            except Exception as e:
+                logger.critical("Failed to add instruction in method end:\nInstr: {}\nLine: {}\nInstr id: {}".format(instr, line_num, state.instruction_id))
+                exit()
 
             state.instruction_id += 1
             
