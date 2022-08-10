@@ -3,7 +3,8 @@ Global configuration settings
 """
 import logging
 
-LOG_LEVEL = logging.WARNING 
+#LOG_LEVEL = logging.WARNING 
+LOG_LEVEL = logging.DEBUG
 
 log_to_file = False
 

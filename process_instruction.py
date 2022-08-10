@@ -115,6 +115,7 @@ def process_instruction(instr, line_num, state, logger):
         state: Graph (mutable) - The global state
         logger: - The active logger (maybe want to have separate logger for this?)
     """
+    logger.debug("{}: {}".format(line_num, instr))
     # Check flags for how to process the instruction
     if state.ANNOTATION_FLAG:
         logger.debug("ANNOTATION_FLAG active")
