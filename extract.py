@@ -155,7 +155,9 @@ for file in state.file_list:
 
             
     # We have processed the entire file, so offload the blocks, methods and classes to the state
-    state.active_method.add_basic_block(state.active_block)
+    if state.active_block:
+        state.active_method.add_basic_block(state.active_block)
+    
     state.active_class.add_method(state.active_method)
 
     # Resolve any ambiguities in local method calls
