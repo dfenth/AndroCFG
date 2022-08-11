@@ -7,6 +7,24 @@ from config import logger
 invoke_params_regex = re.compile(r"\{(.*?)\}")
 invoke_class_regex = re.compile(r"\s(\[)*L\w+(\/\w+)+(\S)*;->") # Remember to strip whitespace and get rid of `;->` and `[`
 
+class FileItem():
+    """A class to hold data r.e. the file list"""
+    def __init__(self, name):
+        """Initialise file list object
+        Args:
+            name: str - Name of the file to process
+        """
+        self.file_name = name
+        self.associated_calls = [] # Store tuple (class_id, (call_info)) where call_info is (src_method_id, src_block_id, target_class_name, target_method_name)
+        self.make_library = False # Flags whether this should be interpreted as a library function when resolving global invocations
+    
+    def add_assoc_call(self, call_data):
+        """Adds an associated call 
+        Args:
+            call_data: (int, int, str, str) - Tuple of call data (src_method_id, src_block_id, target_class_name, target_method_name)
+        """
+        self.associated_calls += [call_data]
+
 class Instruction():
     """An instruction class for storing all of the attributes
     of an instruction from the smali intermediate code"""
@@ -295,7 +313,7 @@ class SmaliClass():
             instr: str - The invocation instruction to process
             method_id: int - The id of the method the invocation is made from
             block_id: int - The id of the block the invocation is made from
-            state_file_list: [str] - A list of files to be processed (so we can check for duplicate calls)
+            state_file_list: [FileItem] - A list of files to be processed (so we can check for duplicate calls)
         """
         # invoke_params_regex exists if we want to do any processing of the arguments
         # extract the target class and method so we can see what kind of call is being made (local, global, library)
@@ -319,14 +337,21 @@ class SmaliClass():
                 logger.debug("Ignoring {} -> {} since it is not a direct invocation".format(target_class, target_method))
         elif "Lcom" in target_class and app_top_level in target_class: # Added check for same top level (after com) as project
             # global invocation (add to list of files to process if necessary)
-            self.invocations_global += [(method_id, block_id, target_class, target_method)]
+            # clean the path (remove `L` add `smali` and the `.smali` extension)
+            file_name = "smali/" + target_class[1:] + ".smali"
+
+            self.invocations_global += [(file_name, method_id, block_id, target_class, target_method)]
             logger.debug("Adding {} -> {} as a global invocation".format(target_class, target_method))
 
             # Add to list to process if we haven't seen it before
-            # clean the path (remove `L` add `smali` and the `.smali` extension)
-            class_to_add = "smali/" + target_class[1:] + ".smali"
-            if class_to_add not in state_file_list:
-                state_file_list += [class_to_add]
+            if file_name not in list(map(lambda x: x.file_name, state_file_list)):
+                fi = FileItem(file_name)
+                fi.add_assoc_call((method_id, block_id, target_class, target_method))
+                state_file_list += [fi]
+            else:
+                for f in state_file_list:
+                    if f.file_name == file_name:
+                        f.add_assoc_call((method_id, block_id, target_class, target_method))
             
         else:
             # library invocation
@@ -412,6 +437,7 @@ class Graph():
             file_list: [str] - List of files to start processing (can be added to)
         """
         self.file_list       = file_list
+        self.file_data       = {} # Stores file data file_name:[class_ids] pairs file name to class_ids that interact so we can push the file to library invocation if it doesn't exist in the project
         self.class_id        = 0
         self.method_id       = 0
         self.block_id        = 0
@@ -461,7 +487,7 @@ class Graph():
         Args:
             file: str - The path to the file to process
         """
-        self.file_list += [file]
+        self.file_list += [FileItem(file)]
 
     def resolve_global_invocations(self):
         """Resolve global invocations
@@ -471,7 +497,19 @@ class Graph():
         report = []
         for smali_class in self.classes:
             # Check each class for global invocations
-            for src_method_id, src_block_id, target_class_name, target_method_name in smali_class.invocations_global:
+            for file_name, src_method_id, src_block_id, target_class_name, target_method_name in smali_class.invocations_global:
+                # Check if this needs to be added as a library call instead
+                lib_flag = False
+                for f in self.file_list:
+                    if f.file_name == file_name and f.make_library:
+                        smali_class.invocations_lib += [(src_method_id, src_block_id, target_class_name, target_method_name)]
+                        lib_flag = True
+                        break
+                
+                if lib_flag:
+                    continue
+
+                # If this does not need to be reclassified, continue
                 failed_res = False
                 # get the src method object
                 for s_m in smali_class.methods:
@@ -479,7 +517,7 @@ class Graph():
                         # method object got!
                         src_method_obj = s_m
                         break
-                else    :
+                else:
                     report += ["{} Failed to resolve source method {} -> {}".format(smali_class.class_name, target_class_name, target_method_name)]
                     failed_res = True
 

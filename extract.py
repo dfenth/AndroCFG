@@ -6,7 +6,7 @@ import re
 import argparse
 import glob
 from config import logger
-from structures import Graph 
+from structures import Graph, FileItem
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
 from output_graph import output_cfg_dotfile, output_cfg_coo, output_fcg_dotfile, output_fcg_coo, restricted_hybrid_dot, restricted_hybrid_coo, interactive_graph
@@ -37,6 +37,7 @@ if args.out !=  "" and args.out[-1] != "/":
     out_dir += "/"
 
 files_to_process = extract_activity_files(top_level_dir+"/AndroidManifest.xml")
+files_to_process = [FileItem(x) for x in files_to_process] # Convert files to FileItem class
 if len(files_to_process) == 0:
     logger.critical("Could not extract any files to process from the manifest -- stopping!")
     exit()
@@ -49,11 +50,13 @@ state = Graph(files_to_process)
 
 file_count = 0
 
-for file in state.file_list:
+for file_item in state.file_list:
+    file = file_item.file_name
     file_count += 1
     file = top_level_dir + file # Add path to app directory
 
     # Attempt to open the next file
+    file_success = True
     try:
         with open(file, "r") as smali_file:
             smali_instructions = smali_file.readlines()
@@ -70,13 +73,20 @@ for file in state.file_list:
                     with open(f, "r") as smali_file:
                         smali_instructions = smali_file.readlines()
                 except Exception as e:
-                    logger.critical("Failed to open file: {} -- terminating".format(f)) 
-                    exit()
-
+                    logger.warning("Failed to open file: {} -- treating as library function".format(f)) 
+                    file_item.make_library = True
+                    file_success = False
+                    #exit() # TODO: Change this to push file to library instead
                 break
         else:
-            logger.critical("Failed to find a file which matches {} -- terminating".format(target_file))
-            exit()
+            logger.critical("Failed to find a file which matches {} -- treating as library function".format(target_file))
+            file_item.make_library = True
+            # exit()
+            file_success = False
+    
+    if not file_success:
+        continue
+
 
     # Special processing cases (where we have defined start and end directives)
     # annotations
