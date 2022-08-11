@@ -325,7 +325,13 @@ class SmaliClass():
         target_method = instr.split("->")[-1]
         target_method = target_method.strip()
         
-        app_top_level = self.class_path.split("/")[1] # top level application directory
+        # Split the class path so we can see if the class is a part of the project
+        class_path_split = self.class_path.split("/")
+        if len(class_path_split) == 0:
+            logger.warning("Poorly formatted class path: {} - taking first item on `/` split".format(self.class_path))
+            app_top_level = class_path_split[0]
+        else:
+            app_top_level = class_path_split[1] # top level application directory
         logger.debug("Comparing: {}/{} -- {}".format(self.class_path, self.class_name, target_class)) 
         if "{}/{}".format(self.class_path, self.class_name) == target_class:
             #if "Lcom" in target_class and app_top_level in target_class and self.class_name in target_class:
