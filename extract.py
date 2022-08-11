@@ -180,11 +180,7 @@ for file_item in state.file_list:
     state.add_class(state.active_class)
 
 # resolve ambiguities in global and library calls
-response = state.resolve_global_invocations()
-if len(response) > 0:
-    logger.warning("Global invocation resolution failed!")
-    for r in response:
-        logger.warning(r)
+state.resolve_global_invocations()
 
 response = state.resolve_library_invocations()
 if len(response) > 0:

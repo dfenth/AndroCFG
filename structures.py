@@ -290,7 +290,10 @@ class SmaliClass():
         Args:
             method: Method - The method to add
         """
-        self.methods += [method]
+        if method != None:
+            self.methods += [method]
+        else:
+            logger.warning("Attempted to add method which is `None`")
 
     def add_super(self, instr):
         """Add the super class from the instruction provided
@@ -501,7 +504,6 @@ class Graph():
         Returns:
             A list of global invocations that could not be resolved (if any)
         """
-        report = []
         for smali_class in self.classes:
             # Check each class for global invocations
             for file_name, src_method_id, src_block_id, target_class_name, target_method_name in smali_class.invocations_global:
@@ -525,7 +527,7 @@ class Graph():
                         src_method_obj = s_m
                         break
                 else:
-                    report += ["{} Failed to resolve source method {} -> {}".format(smali_class.class_name, target_class_name, target_method_name)]
+                    logger.warning("{} Failed to resolve source method {} -> {}".format(smali_class.class_name, target_class_name, target_method_name))
                     failed_res = True
 
                 if failed_res:
@@ -540,7 +542,7 @@ class Graph():
                         target_class_obj = target_class
                         break
                 else:
-                    report += ["{} Failed to resolve target class {} -> {}".format(smali_class.class_name, target_class_name, target_method_name)]
+                    logger.warning("{} Failed to resolve target class {} -> {}".format(smali_class.class_name, target_class_name, target_method_name))
                     failed_res = True
 
                 if failed_res:
@@ -553,7 +555,7 @@ class Graph():
                         src_block = src_bb
                         break
                 else:
-                    report += ["{} Failed to resolve source block {} -> {}".format(smali_class.class_name, target_class_name, target_method_name)]
+                    logger.warning("{} Failed to resolve source block {} -> {}".format(smali_class.class_name, target_class_name, target_method_name))
                     failed_res = True
                 
                 if failed_res:
@@ -562,11 +564,11 @@ class Graph():
                 # get target method
                 clean_target_method_name = target_method_name.split("(")[0]
                 for t_m in target_class_obj.methods:
-                    if t_m.method_name == clean_target_method_name:
+                    if t_m.method_name == clean_target_method_name: # ERROR - We have a None method leaking though!
                         target_method = t_m
                         break
                 else:
-                    report += ["{} Failed to resolve target method {} -> {}".format(smali_class.class_name, target_class_name, target_method_name)]
+                    logger.warning("{} Failed to resolve target method {} -> {}".format(smali_class.class_name, target_class_name, target_method_name))
                     failed_res = True
                 
                 if failed_res:
@@ -586,8 +588,6 @@ class Graph():
                     src_method_obj.add_call_in(target_method.method_id)
                     target_method.add_call_out(src_method_obj.method_id)
 
-
-        return report
 
     def resolve_library_invocations(self):
         """Resolve the invocations made to Android library functions

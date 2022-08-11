@@ -193,9 +193,9 @@ def process_instruction(instr, line_num, state, logger):
             state.block_id += 1
             state.active_block = block
 
-            # start a new method
-            state.active_method = Method(state.method_id, instr)
-            state.method_id += 1
+            # start a new method - DUPLICATE?
+            # state.active_method = Method(state.method_id, instr)
+            # state.method_id += 1
 
             if state.block_term:
                 state.block_term = False
