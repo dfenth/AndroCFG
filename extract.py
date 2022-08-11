@@ -196,6 +196,10 @@ logger.info("Consumed {} files".format(file_count))
 for f in state.file_list:
     logger.info("\t{}".format(f))
 
+# Check if the applucation has any classes
+if len(state.classes) == 0:
+    logger.critical("No classes exist for this application -- terminating")
+    exit()
 
 if args.format == "dot" and args.type == "cfg":
     output_cfg_dotfile(state, out_dir+out_file_name+".dot")
