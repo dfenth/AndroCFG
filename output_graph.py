@@ -119,11 +119,12 @@ def create_summary_feature_vector(instructions, degree, num_total_instr):
     return feature_vector
 
 
-def output_cfg_coo(graph, file_path):
+def output_cfg_coo(graph, file_path, verbose_nodes=False):
     """Output the CFG of the graph in COO format
     Args:
         graph: Graph - The graph which holds the program structure
         file_path: str - The path to save the file to
+        verbose_nodes: bool - Determines if we need to save node instructions as well (for full CFG generation)
     """
     bb_feature_vectors = []
     
@@ -132,6 +133,7 @@ def output_cfg_coo(graph, file_path):
 
     adjacency_row = []
     adjacency_col = []
+    node_instrs = {}
     
     for graph_class in graph.classes:
         for class_methods in graph_class.methods:
@@ -151,7 +153,11 @@ def output_cfg_coo(graph, file_path):
                 for dest in basic_block.child_block_ids:
                     adjacency_row += [dest]
                     adjacency_col += [basic_block.block_id]
-    
+                
+                # Extract the node instructions if needed
+                if verbose_nodes:
+                    node_instrs[basic_block.block_id] = [x.instruction for x in basic_block.instructions]
+
     output = "{},{}\n\n".format(len(bb_feature_vectors), len(bb_feature_vectors[0])) # State the number of nodes (basic blocks) and the number of feature vectors
     # Feature matrix data
     output += "{}\n".format(str(bb_feature_vectors))
@@ -160,6 +166,9 @@ def output_cfg_coo(graph, file_path):
     # Adjacency matrix data
     output += "{}\n".format(adjacency_row)
     output += "{}\n".format(adjacency_col)
+    # Add node instructions if specified
+    if verbose_nodes:
+        output += "\n{}\n".format(str(node_instrs))
 
     with open(file_path, "w") as coo_file:
         coo_file.write(output)

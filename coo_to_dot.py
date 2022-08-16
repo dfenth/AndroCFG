@@ -2,6 +2,7 @@
 """
 import sys
 import re
+import ast
 
 def coo_to_dot(src_path, res_path):
     """Convert COO sparse matrix format graphs to dotfile for visualisation
@@ -14,6 +15,15 @@ def coo_to_dot(src_path, res_path):
 
     src_line = coo_lines[7].strip()
     target_line = coo_lines[6].strip()
+    
+    instr_flag = False
+    try:
+        instr_data = coo_lines[9].strip()
+        instr_data = ast.literal_eval(instr_data) # Convert the string of dict to a dict
+        instr_flag = True
+        print("Verbose instruction data found!")
+    except:
+        print("No verbose instruction data found")
 
     src_line = src_line.replace("[", "").replace("]", "").replace(" ", "")
     target_line = target_line.replace("[", "").replace("]", "").replace(" ", "")
@@ -22,7 +32,14 @@ def coo_to_dot(src_path, res_path):
     target_vertices = target_line.split(",")
     
     dot_text = "digraph {\n"
-
+    
+    if instr_flag:
+        for k in instr_data:
+            # k is the node id, instr_data[k] is the node instructions
+            instructions = ["{}".format(x.replace("$", "•").replace('"', "'")) for x in instr_data[k]]
+            instructions = "\l".join(instructions) + "\l" # \l for left alignment in the dotfile
+            dot_text += "{} [shape=box label=\"{}\"];\n".format(k, instructions)
+    
     for s,t in zip(src_vertices, target_vertices):
         dot_text += "{} -> {};\n".format(s, t)
 

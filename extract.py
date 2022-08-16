@@ -18,6 +18,7 @@ parser.add_argument("-f", "--format", help="Output graph format", choices=['coo'
 parser.add_argument("-t", "--type", help="Output graph type", choices=['cfg', 'fcg', 'hybrid'])
 parser.add_argument("-e", "--exp_methods", help="Path to the expansion methods file", type=str, default="")
 parser.add_argument("-s", "--special", help="Special extraction type using a specific paper implementation (no other arguments apart from -d required)", choices=["cfgexplainer", "malgraph"])
+parser.add_argument("-v", "--verbose", help="Creates a verbose COO file which includes all code instructions in the basic blocks (currently only available for CFG generation)", action='store_true')
 
 args = parser.parse_args()
 
@@ -216,7 +217,10 @@ if args.format == "coo" and args.type == "hybrid":
         restricted_hybrid_coo(state, out_dir+out_file_name+".coo", args.exp_methods)
 
 if args.format == "coo" and args.type == "cfg":
-    output_cfg_coo(state, out_dir+out_file_name+".coo")
+    if args.verbose:
+        output_cfg_coo(state, out_dir+out_file_name+"_verbose.coo", verbose_nodes=True)
+    else:
+        output_cfg_coo(state, out_dir+out_file_name+".coo")
 
 if args.format == "coo" and args.type == "fcg":
     output_fcg_coo(state, out_dir+out_file_name+".coo")
