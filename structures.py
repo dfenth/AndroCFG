@@ -5,8 +5,8 @@ import re
 from config import logger
 
 invoke_params_regex = re.compile(r"\{(.*?)\}")
-# invoke_class_regex = re.compile(r"\s(\[)*L\w+(\/\w+)+(\S)*;->") # Remember to strip whitespace and get rid of `;->` and `[`
-invoke_class_regex = re.compile(r"\s(\[)*L?\w+(\/\w+)+(\S)*;*->") # Remember to strip whitespace and get rid of `;->` and `[`
+# invoke_class_regex = re.compile(r"\s(\[)*L?\w+(\/\w+)+(\S)*;*->") # Remember to strip whitespace and get rid of `;->` and `[`
+invoke_class_regex = re.compile(r"\s\[*\S*\;*\-\>")
 
 class FileItem():
     """A class to hold data r.e. the file list"""
