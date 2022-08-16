@@ -14,6 +14,7 @@ To run CFGext use the `extract.py` file with the following command line options 
 - `-t`/`--type` - `{fcg, cfg, hybrid}` the type of graph to output. The `cfg` option will produce the CFG of the entire (designed) program whereas `fcg` will output the interactions between function calls only.`hybrid` creates a graph which is a hybrid between a FCG and a CFG where methods that interact with defined nodes are expanded into CFGs.
 - `-e`/`--exp_methods` - The path to a method expansion file (used for `-t hybrid` only). See below for the file specification.
 - `-s`/`--special` - Specifies an extraction type which integrates with another paper. Choices are `cfgexplainer` from [CFGExplainer: Explaining Graph Neural Network-Based Malware Classification from Control Flow Graphs](https://ieeexplore.ieee.org/abstract/document/9833560) or `malgraph` from [MalGraph: Hierarchical Graph Neural Networks for Robust Windows Malware Detection](https://ieeexplore.ieee.org/document/9796786). If this option is selected no other command line options (other than `-d`) are required.
+- `-v`/`--verbose` - If this flag is present the COO generation will also store the instruction data for each basic block. Note that this is currently only available for CFG generation and leads to significantly larger data files.
 
 If a `dot` file is produced it can be compiled to an image using [graphviz](https://graphviz.org/) using a command such as `dot -Tsvg <graph-file>.dot -o <output-image-name>.svg`. Using the `svg` format is recommended since the graphs can get large!
 
