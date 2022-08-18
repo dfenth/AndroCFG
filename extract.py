@@ -5,6 +5,7 @@ Extract the CFG from the apk smali code
 import re
 import argparse
 import glob
+import os
 from config import logger
 from structures import Graph, FileItem
 from process_instruction import process_instruction, op_map
@@ -43,7 +44,9 @@ if len(files_to_process) == 0:
     logger.critical("Could not extract any files to process from the manifest -- stopping!")
     exit()
 
-permission_list = extract_permissions(top_level_dir+"/AndroidManifest.xml")
+manifest_path = top_level_dir+"/AndroidManifest.xml"
+manifest_path = os.path.normpath(manifest_path)
+permission_list = extract_permissions(manifest_path)
 if len(permission_list) == 0:
     logger.warning("Could not find any permissions to extract!")
 
@@ -55,6 +58,7 @@ for file_item in state.file_list:
     file = file_item.file_name
     file_count += 1
     file = top_level_dir + file # Add path to app directory
+    file = os.path.normpath(file) # Clean the path
 
     # Attempt to open the next file
     file_success = True
