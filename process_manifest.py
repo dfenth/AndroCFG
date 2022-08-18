@@ -23,9 +23,12 @@ def extract_activity_files(manifest_path):
     
     for activity in activities:
         # format the path correctly
-        path = "smali/" + activity['@android:name'].replace(".", "/") + ".smali"
-        activity_files += [path]
-    
+        try:
+            path = "smali/" + activity['@android:name'].replace(".", "/") + ".smali"
+            activity_files += [path]
+        except Exception as e:
+            print("####### Failed to extract activity path: \n{}\nManifest:\n{}".format(e, manifest_data))
+
     return activity_files
 
 
