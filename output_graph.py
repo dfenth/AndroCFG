@@ -459,7 +459,6 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                         logger.debug("ID search failed! 1")
                     
                     # Create feature vector for the basic block
-                    print("Generating feature vectors for: {}".format(src_id))
                     feature_vectors[src_id] = create_summary_feature_vector(
                         basic_block.instructions, 
                         len(basic_block.child_block_ids)+len(basic_block.parent_block_ids), 
@@ -520,7 +519,6 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                 method_instrs = []
                 for basic_block in class_method.basic_blocks:
                     method_instrs += basic_block.instructions
-                print("FCG Generating feature vectors for: {}".format(src_id))
                 feature_vectors[src_id] = create_summary_feature_vector(
                     method_instrs,
                     len(class_method.calls_out)+len(class_method.calls_in),
@@ -566,17 +564,14 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
     
     vert_list = list(feature_vectors.keys())
     vert_list.sort()
-    print(vert_list)
     
     # Sort the feature vectors
     for vertex in vert_list:
         # Add feature vectors
         if not (vertex in reduction_map):
-            print("SRC Creating reduction: {} -> {}".format(vertex, node_id_counter))
             reduction_map[vertex] = node_id_counter
             node_id_counter += 1
         else:
-            print("vertex: {} already mapped to {}".format(vertex, reduction_map[vertex]))
 
         hybrid_feature_vectors += [feature_vectors[vertex]]
         feature_row += [reduction_map[vertex]]
@@ -589,7 +584,6 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
                 if target in reduction_map:
                     adjacency_row += [reduction_map[target]]
                 else:
-                    print("TARGET Creating reduction: {} -> {}".format(target, node_id_counter))
                     reduction_map[target] = node_id_counter
                     node_id_counter += 1
                     adjacency_row += [reduction_map[target]]
