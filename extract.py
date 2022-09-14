@@ -10,7 +10,7 @@ from config import logger
 from structures import Graph, FileItem
 from process_instruction import process_instruction, op_map
 from process_manifest import extract_activity_files, extract_permissions 
-from output_graph import output_cfg_dotfile, output_cfg_coo, output_fcg_dotfile, output_fcg_coo, restricted_hybrid_dot, restricted_hybrid_coo, interactive_graph
+from output_graph import output_cfg_dotfile, output_cfg_coo, output_fcg_dotfile, output_fcg_coo, restricted_hybrid_dot, restricted_hybrid_coo
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-d", "--dir", help="The path to the directory to process", type=str, required=True)
@@ -239,4 +239,3 @@ import malgraph_extract
 malgraph_extract.extract_library_functions(state)
 """
 
-# interactive_graph(state)
