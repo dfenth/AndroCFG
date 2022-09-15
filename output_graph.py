@@ -571,8 +571,7 @@ def restricted_hybrid_coo(graph, file_path, exp_methods_path):
         if not (vertex in reduction_map):
             reduction_map[vertex] = node_id_counter
             node_id_counter += 1
-        else:
-
+        
         hybrid_feature_vectors += [feature_vectors[vertex]]
         feature_row += [reduction_map[vertex]]
         feature_col += [0]
