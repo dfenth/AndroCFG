@@ -7,7 +7,7 @@ This code was written in python 3.x (3.9 specifically, but any version should wo
 ### Usage
 This program operates on apps that have already been disassembled using [apktool](https://ibotpeaches.github.io/Apktool/) with the decode `d` option to decode the manifest file (so the command would be `apktool d <app-to-disassemble>`). This should produce a directory that CFGext can interact with.
 
-To run CFGext use the `extract.py` file with the following command line options (addin the `-h` or `--help` flag will display these options).
+To run CFGext use the `extract.py` file with the following command line options (adding the `-h` or `--help` flag will display these options).
 - `-d`/`--dir` - The directory of the disassembled application to process.
 - `-o`/`--out` - The directory where any output graphs should be placed.
 - `-f`/`--format` - `{coo, dot}` the graph output format. `coo` is useful for downstream ML tasks (e.g. Graph Neural Networks etc.) whereas `dot` is useful for graph visualisation.
