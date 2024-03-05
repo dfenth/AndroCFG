@@ -1,5 +1,5 @@
-# CFGext
-This project contains python code for CFG extraction from the [Smali intermediate langauge](https://github.com/JesusFreke/smali) which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
+# AndroCFG
+This project contains python code for AndroCFG which constructs control flow graphs from the [Smali intermediate langauge](https://github.com/JesusFreke/smali) which is commonly used for Android app disassembly. This README intends to document the code as much as possible to allow for easy extension and/or adaptation.
 
 ### Requirements
 This code was written in python 3.x (3.9 specifically, but any version should work). The only required library is [xmltodict](https://github.com/martinblech/xmltodict) (`pip install xmltodict`) for the manifest file processing.
