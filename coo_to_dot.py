@@ -1,4 +1,4 @@
-"""Convert COO files to dotfiles to sanity check the graph compression
+"""Convert COO files to dotfiles to check the graph compression
 """
 import sys
 import re
